@@ -2,14 +2,13 @@
 #include "system.h"
 
 int main(int argc, char** argv) {
-    if (argc < 1)
+    if (argc < 2)
     {
         printf("Usage: %s [IMAGE]\n", argv[0]);
         return 1;
     }
 
-    //FILE* image = fopen("C:\\Users\\kiri\\Downloads\\Microsoft MS-DOS 6.22 Plus Enhanced Tools (3.5)\\disk1.img", "r+b");
-    FILE* image = fopen("C:\\Users\\kiri\\source\\hello", "r+b");
+    FILE* image = fopen(argv[1], "r+b");
 
     if (image == NULL)
     {
