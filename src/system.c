@@ -26,14 +26,20 @@ Sys8086* init_sys(FILE* image)
 
 	sys->display.mem = &sys->memory[0xB8000];
 
-	for (int i = 0; i < 80 * 25; i++)
+
+	for (int i = 0; i < VGA_DISPLAY_PAGES; i++)
 	{
-		sys->display.mem[i].disp = ' ';
-		sys->display.mem[i].attrib = 0;
+		sys->display.cursor_x[i] = 0;
+		sys->display.cursor_y[i] = 0;
+	}
+
+	sys->display.display_page = 0;
+
+	for (int i = 0; i < MAX_MEMORY_8086; i++)
+	{
+		sys->memory[i] = 0;
 	}
 
 	fread(&sys->memory[0x7c00], sizeof(uint8_t), 512, image);
-
-
 	return sys;
 }
