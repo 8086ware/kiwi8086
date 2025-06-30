@@ -45,7 +45,6 @@ int main(int argc, char** argv) {
     tm_win_flags(emuwin, TM_FLAG_BORDER, 1);
     tm_win_flags(emuwin, TM_FLAG_TERMINAL_INPUT, 1);
     tm_win_flags(emuwin, TM_FLAG_ECHO, 0);
-    tm_win_flags(emuwin, TM_FLAG_CURSOR_VISIBLE, 0);
 
     tm_win_input_timeout(emuwin, 0);
 
@@ -179,6 +178,8 @@ int main(int argc, char** argv) {
                 tm_win_print(emuwin, "%c", sys->display.mem[((y * sys->display.columns + x)) * (sys->display.display_page + 1)].disp);
             }
         }
+
+        tm_win_cursor(emuwin, sys->display.cursor_x[sys->display.display_page], sys->display.cursor_y[sys->display.display_page]);
 
         tm_win_print(debugwin, "AX: %x, BX: %x, CX: %x, DX: %x, CS: %x, DS: %x, SS: %x, ES: %x, SP: %x, BP: %x, SI: %x, DI: %x, IP: %x, FLAGS: %x",
             sys->cpu.ax.whole, sys->cpu.bx.whole, sys->cpu.cx.whole, sys->cpu.dx.whole, sys->cpu.cs.whole, sys->cpu.ds.whole, sys->cpu.ss.whole, sys->cpu.es.whole, sys->cpu.sp.whole, sys->cpu.bp.whole, sys->cpu.si.whole, sys->cpu.di.whole, sys->cpu.ip.whole, sys->cpu.flag.whole);
