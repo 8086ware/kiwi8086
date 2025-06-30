@@ -120,7 +120,7 @@ uint8_t* reg8_index(Sys8086* sys, int index)
 // Word is 1 for 16bit operations and 0 for 8bit.
 // Sreg is for dealing with segment registers
 
-uint8_t calc_modrm_byte(Sys8086* sys, int instruction_address, int** reg, int** rmreg, int* rmmem, int* imm, _Bool word, _Bool imm_byte, _Bool sreg)
+uint8_t calc_modrm_byte(Sys8086* sys, Register* data_seg, int instruction_address, void** reg, void** regmem, void* imm, _Bool word, _Bool imm_byte, _Bool sreg)
 {
 	uint8_t modrm = sys->memory[instruction_address + 1];
 
@@ -131,21 +131,29 @@ uint8_t calc_modrm_byte(Sys8086* sys, int instruction_address, int** reg, int** 
 	int imm_position = 0;
 	int displacement_position = 0;
 
-	if (mod_val == 0b00 && rm_val != 6)
+	if ((mod_val == 0b00 && rm_val != 6) || mod_val == 0b11)
 	{
 		displacement_position = -1; // not used
 		imm_position = 2;
 	}
 
-	else
+	else if (mod_val == 0b01)
+	{
+		displacement_position = 2;
+		imm_position = 3;
+	}
+
+	else if(mod_val == 0b10 || (mod_val == 0b00 && rm_val == 6))
 	{
 		displacement_position = 2;
 		imm_position = 4;
 	}
 
-	// Not using rmreg
+	// Using mem, not reg in regmem
 	if (mod_val == 0b01 || mod_val == 0b10 || mod_val == 0b00) // No displacement for mod 0 (except rm_val == 6)
 	{
+		*regmem = 0;
+
 		// Do we also have a immediate byte/word? then we can find that out to and give it to the caller
 
 		if (imm_byte)
@@ -154,27 +162,27 @@ uint8_t calc_modrm_byte(Sys8086* sys, int instruction_address, int** reg, int** 
 			{
 				uint16_t* imm_ptr = &sys->memory[instruction_address + imm_position];
 
-				*imm = *imm_ptr;
+				*(uint16_t*)imm = *imm_ptr;
 			}
 
 			else
 			{
-				*imm = sys->memory[instruction_address + imm_position];
+				*(uint8_t*)imm = sys->memory[instruction_address + imm_position];
 			}
 		}
 
-		// Set rmmem to the displacement first before adding (if displacement provided)
+		// Add displacement to regmem first before adding (if displacement provided)
 
 		if (mod_val == 0b01)
 		{
-			*rmmem = sys->memory[instruction_address + displacement_position];
+			*(uint8_t*)regmem += sys->memory[instruction_address + displacement_position];
 		}
 
 		else if(mod_val == 0b10)
 		{
 			uint16_t* displacement_ptr = &sys->memory[instruction_address + displacement_position];
 
-			*rmmem = *displacement_ptr;
+			*(uint16_t*)regmem += *displacement_ptr;
 		}
 
 		// Add registers to rmmem
@@ -183,32 +191,32 @@ uint8_t calc_modrm_byte(Sys8086* sys, int instruction_address, int** reg, int** 
 		{
 		case 0:
 		{
-			*rmmem += sys->cpu.bx.whole + sys->cpu.si.whole;
+			*(uint16_t*)regmem += sys->cpu.bx.whole + sys->cpu.si.whole;
 			break;
 		}
 		case 1:
 		{
-			*rmmem += sys->cpu.bx.whole + sys->cpu.di.whole;
+			*(uint16_t*)regmem += sys->cpu.bx.whole + sys->cpu.di.whole;
 			break;
 		}
 		case 2:
 		{
-			*rmmem += sys->cpu.bp.whole + sys->cpu.si.whole;
+			*(uint16_t*)regmem += sys->cpu.bp.whole + sys->cpu.si.whole;
 			break;
 		}
 		case 3:
 		{
-			*rmmem += sys->cpu.bp.whole + sys->cpu.di.whole;
+			*(uint16_t*)regmem += sys->cpu.bp.whole + sys->cpu.di.whole;
 			break;
 		}
 		case 4:
 		{
-			*rmmem += sys->cpu.si.whole;
+			*(uint16_t*)regmem += sys->cpu.si.whole;
 			break;
 		}
 		case 5:
 		{
-			*rmmem += sys->cpu.di.whole;
+			*(uint16_t*)regmem += sys->cpu.di.whole;
 			break;
 		}
 		case 6:
@@ -217,22 +225,25 @@ uint8_t calc_modrm_byte(Sys8086* sys, int instruction_address, int** reg, int** 
 			{
 				uint16_t* displacement_ptr = &sys->memory[instruction_address + displacement_position];
 
-				*rmmem = *displacement_ptr;
+				*(uint8_t*)regmem += *displacement_ptr;
 			}
 
 			else
 			{
-				*rmmem += sys->cpu.bp.whole;
+				*(uint8_t*)regmem += sys->cpu.bp.whole;
 			}
 
 			break;
 		}
 		case 7:
 		{
-			*rmmem += sys->cpu.bx.whole;
+			*(uint8_t*)regmem += sys->cpu.bx.whole;
 			break;
 		}
 		}
+
+		void* real_regmem_memory_address = &(sys->memory[seg_mem(data_seg->whole, *regmem)]);
+		*regmem = real_regmem_memory_address;
 	}
 
 	// rm is same as reg, using rmreg
@@ -245,12 +256,12 @@ uint8_t calc_modrm_byte(Sys8086* sys, int instruction_address, int** reg, int** 
 			{
 				uint16_t* imm_ptr = &sys->memory[instruction_address + imm_position];
 
-				*imm = *imm_ptr;
+				*(uint16_t*)imm = *imm_ptr;
 			}
 
 			else
 			{
-				*imm = sys->memory[instruction_address + imm_position];
+				*(uint8_t*)imm = sys->memory[instruction_address + imm_position];
 			}
 		}
 
@@ -263,7 +274,7 @@ uint8_t calc_modrm_byte(Sys8086* sys, int instruction_address, int** reg, int** 
 
 		else
 		{
-			*rmreg = reg8_index(sys, rm_val);
+			*regmem = reg8_index(sys, rm_val);
 		}
 	}
 
@@ -284,7 +295,33 @@ uint8_t calc_modrm_byte(Sys8086* sys, int instruction_address, int** reg, int** 
 		*reg = reg8_index(sys, reg_val);
 	}
 
-	return reg_val; // For instructions that use reg to determine them (0xFF)
+	int ip_increase = 0; 
+
+	if (mod_val == 0b01 || mod_val == 0b10 || mod_val == 0b00)
+	{
+		// Immediate is the last byte/word
+		if (imm_byte)
+		{
+			ip_increase += imm_position;
+}
+
+		if (word)
+		{
+			ip_increase += 2;
+		}
+
+		else
+		{
+			ip_increase++;
+		}
+	}
+
+	else
+	{
+		ip_increase += 2;
+	}
+
+	return ip_increase; // Amount of how instruction pointer should go upasd
 }
 
 uint32_t seg_mem(uint16_t seg, uint16_t offset)
