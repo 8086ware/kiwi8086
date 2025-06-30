@@ -66,7 +66,117 @@ int main(int argc, char** argv) {
             for (int x = 0; x < emuwin_cols; x++)
             {
                 tm_win_cursor(emuwin, x, y);
-                tm_win_print(emuwin, "%c", sys->display.mem[((y * sys->display.columns + x))].disp);
+
+                tm_win_attrib(emuwin, TM_ATTRIB_ALL, 0);
+
+                uint8_t bg_color = (sys->display.mem[((y * sys->display.columns + x)) * (sys->display.display_page + 1)].attrib & 0b11110000) >> 4;
+                uint8_t fg_color = sys->display.mem[((y * sys->display.columns + x)) * (sys->display.display_page + 1)].attrib & 0b00001111;
+                
+                switch(fg_color)
+                {
+                case 0x0:
+                    tm_win_attrib(emuwin, TM_ATTRIB_FG_BLACK, 1);
+                    break;
+                case 0x1:
+                    tm_win_attrib(emuwin, TM_ATTRIB_FG_BLUE, 1);
+                    break;
+                case 0x2:
+                    tm_win_attrib(emuwin, TM_ATTRIB_FG_GREEN, 1);
+                    break;
+                case 0x3:
+                    tm_win_attrib(emuwin, TM_ATTRIB_FG_CYAN, 1);
+                    break;
+                case 0x4:
+                    tm_win_attrib(emuwin, TM_ATTRIB_FG_RED, 1);
+                    break;
+                case 0x5:
+                    tm_win_attrib(emuwin, TM_ATTRIB_FG_MAGENTA, 1);
+                    break;
+                case 0x6:
+                    tm_win_attrib(emuwin, TM_ATTRIB_FG_YELLOW, 1);
+                    break;
+                case 0x7:
+                    tm_win_attrib(emuwin, TM_ATTRIB_FG_WHITE, 1);
+                    break;
+                case 0x8:
+                    tm_win_attrib(emuwin, TM_ATTRIB_FG_BRIGHTBLACK, 1);
+                    break;
+                case 0x9:
+                    tm_win_attrib(emuwin, TM_ATTRIB_FG_BRIGHTBLUE, 1);
+                    break;
+                case 0xA:
+                    tm_win_attrib(emuwin, TM_ATTRIB_FG_BRIGHTGREEN, 1);
+                    break;
+                case 0xB:
+                    tm_win_attrib(emuwin, TM_ATTRIB_FG_BRIGHTCYAN, 1);
+                    break;
+                case 0xC:
+                    tm_win_attrib(emuwin, TM_ATTRIB_FG_BRIGHTRED, 1);
+                    break;
+                case 0xD:
+                    tm_win_attrib(emuwin, TM_ATTRIB_FG_BRIGHTMAGENTA, 1);
+                    break;
+                case 0xE:
+                    tm_win_attrib(emuwin, TM_ATTRIB_FG_BRIGHTYELLOW, 1);
+                    break;
+                case 0xF:
+                    tm_win_attrib(emuwin, TM_ATTRIB_FG_BRIGHTWHITE, 1);
+                    break;
+                }
+
+                switch (bg_color)
+                {
+                case 0x0:
+                    tm_win_attrib(emuwin, TM_ATTRIB_BG_BLACK, 1);
+                    break;
+                case 0x1:
+                    tm_win_attrib(emuwin, TM_ATTRIB_BG_BLUE, 1);
+                    break;
+                case 0x2:
+                    tm_win_attrib(emuwin, TM_ATTRIB_BG_GREEN, 1);
+                    break;
+                case 0x3:
+                    tm_win_attrib(emuwin, TM_ATTRIB_BG_CYAN, 1);
+                    break;
+                case 0x4:
+                    tm_win_attrib(emuwin, TM_ATTRIB_BG_RED, 1);
+                    break;
+                case 0x5:
+                    tm_win_attrib(emuwin, TM_ATTRIB_BG_MAGENTA, 1);
+                    break;
+                case 0x6:
+                    tm_win_attrib(emuwin, TM_ATTRIB_BG_YELLOW, 1);
+                    break;
+                case 0x7:
+                    tm_win_attrib(emuwin, TM_ATTRIB_BG_WHITE, 1);
+                    break;
+                case 0x8:
+                    tm_win_attrib(emuwin, TM_ATTRIB_BG_BRIGHTBLACK, 1);
+                    break;
+                case 0x9:
+                    tm_win_attrib(emuwin, TM_ATTRIB_BG_BRIGHTBLUE, 1);
+                    break;
+                case 0xA:
+                    tm_win_attrib(emuwin, TM_ATTRIB_BG_BRIGHTGREEN, 1);
+                    break;
+                case 0xB:
+                    tm_win_attrib(emuwin, TM_ATTRIB_BG_BRIGHTCYAN, 1);
+                    break;
+                case 0xC:
+                    tm_win_attrib(emuwin, TM_ATTRIB_BG_BRIGHTRED, 1);
+                    break;
+                case 0xD:
+                    tm_win_attrib(emuwin, TM_ATTRIB_BG_BRIGHTMAGENTA, 1);
+                    break;
+                case 0xE:
+                    tm_win_attrib(emuwin, TM_ATTRIB_BG_BRIGHTYELLOW, 1);
+                    break;
+                case 0xF:
+                    tm_win_attrib(emuwin, TM_ATTRIB_BG_BRIGHTWHITE, 1);
+                    break;
+                }
+
+                tm_win_print(emuwin, "%c", sys->display.mem[((y * sys->display.columns + x)) * (sys->display.display_page + 1)].disp);
             }
         }
 

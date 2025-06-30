@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#define VGA_DISPLAY_PAGES 8
+
 typedef struct VGA_textmode_cell 
 {
 	unsigned char disp;
@@ -15,6 +17,11 @@ typedef struct VGA
 	int rows;
 
 	VGA_textmode_cell* mem;
+
+	uint8_t cursor_x[VGA_DISPLAY_PAGES];
+	uint8_t cursor_y[VGA_DISPLAY_PAGES];
+
+	int display_page;
 } VGA;
 
 #endif
