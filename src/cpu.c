@@ -1,4 +1,5 @@
 #include "system.h"
+#include "bios.h"
 
 // A 20 bit value but only can be stored in 32 bit 
 
@@ -265,11 +266,9 @@ uint8_t calc_modrm_byte(Sys8086* sys, Register* data_seg, int instruction_addres
 			}
 		}
 
-		*rmmem = -1; // Memory address is -1 (invalid) if we are using rmreg
-
 		if (word)
 		{
-			*rmreg = reg16_index(sys, rm_val);
+			*regmem = reg16_index(sys, rm_val);
 		}
 
 		else
@@ -303,7 +302,7 @@ uint8_t calc_modrm_byte(Sys8086* sys, Register* data_seg, int instruction_addres
 		if (imm_byte)
 		{
 			ip_increase += imm_position;
-}
+		}
 
 		if (word)
 		{
@@ -331,6 +330,8 @@ uint32_t seg_mem(uint16_t seg, uint16_t offset)
 
 void cpu_exec(Sys8086* sys)
 {
+	int ip_increase = 0;
+
 	Register* data_seg = &sys->cpu.ds;
 	Register* dest_seg = &sys->cpu.es;
 
@@ -339,8 +340,7 @@ void cpu_exec(Sys8086* sys)
 	// Only used if instruction has mod r/m byte
 	// We don't know if the registers we are accesing are 8 bit or 16 bit so cast them when dealing with them
 	void* reg = NULL; 
-	void* rmreg = NULL;
-	int rm_mem_addr = 0;
+	void* regmem = NULL;
 
 	uint8_t opcode = sys->memory[cur_inst];
 
@@ -372,50 +372,89 @@ void cpu_exec(Sys8086* sys)
 	
 	switch (opcode) // actual opcode
 	{
+	case GROUP_OPCODE_FE:
+	{
+		uint8_t group_opcode_instruction = (sys->memory[cur_inst + 1] & 0b00111000) >> 3; // reg part identifies the opcode in mod rm byte
+
+		switch (group_opcode_instruction)
+		{
+		case INC_RM8: // FE mm dd dd
+		{
+			int ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+
+			(*(uint8_t*)regmem)++;
+
+			break;
+		}
+		}
+
+		break;
+	}
 	case GROUP_OPCODE_FF:
 	{
 		uint8_t group_opcode_instruction = (sys->memory[cur_inst + 1] & 0b00111000) >> 3; // reg part identifies the opcode in mod rm byte
 
 		switch (group_opcode_instruction)
 		{
-		case JMP_RM16: // FF mm ii ii q
+		// 0x2
+		case CALL_RM16: // FF mm dd dd
 		{
-			calc_modrm_byte(sys, cur_inst, &reg, &rmreg, &rm_mem_addr, NULL, 1, 0, 0);
-			uint16_t* rmmem = &sys->memory[seg_mem(data_seg->whole, rm_mem_addr)];
+			sys->cpu.sp.whole -= 2;
+			uint16_t* stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
 
-			if (rm_mem_addr != -1)
-			{
-				sys->cpu.ip.whole = *(uint16_t*)rmmem;
-			}
+			*stack = sys->cpu.ip.whole;
 
-			else
-			{
-				sys->cpu.ip.whole = *(uint16_t*)rmreg;
-			}
+			calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+
+			sys->cpu.ip.whole = *(uint16_t*)regmem;
 
 			break;
 		}
+		// 0x3
+		case CALL_M16_16: // FF mm
+		{
+			sys->cpu.sp.whole -= 2;
+			uint16_t* stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
+			*stack = sys->cpu.cs.whole;
+			sys->cpu.sp.whole -= 2;
+			stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
+			*stack = sys->cpu.ip.whole;
 
+			calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+
+			sys->cpu.cs.whole = *(uint16_t*)regmem;
+			((uint16_t*)regmem)++;
+			sys->cpu.ip.whole = *(uint16_t*)regmem;
+
+			break;
+		}
+		// 0x4
+		case JMP_RM16: // FF mm dd dd
+		{
+			calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+
+			sys->cpu.ip.whole = *(uint16_t*)regmem;
+
+			break;
+		}
+		// 0x6
 		case PUSH_RM16: // FF mm dd dd
 		{
-			calc_modrm_byte(sys, cur_inst, &reg, &rmreg, &rm_mem_addr, NULL, 1, 0, 0);
-			uint16_t* rmmem = &sys->memory[seg_mem(data_seg->whole, rm_mem_addr)];
-
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
 			sys->cpu.sp.whole -= 2;
 
 			uint16_t* stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
 
-			if (rm_mem_addr != -1)
-			{
-				*stack = *(uint16_t*)rmmem;
-				sys->cpu.ip.whole += 4;
-			}
+			*stack = *(uint16_t*)regmem;
 
-			else
-			{
-				*stack = *(uint16_t*)rmreg;
-				sys->cpu.ip.whole += 2;
-			}
+			break;
+		}
+		// 0x0
+		case INC_RM16: // FF mm dd dd
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+
+			(*(uint16_t*)regmem)++;
 
 			break;
 		}
@@ -426,219 +465,89 @@ void cpu_exec(Sys8086* sys)
 	case ADD_AL_IMM8:
 	{
 		sys->cpu.ax.low += sys->memory[cur_inst + 1];
-		sys->cpu.ip.whole += 2;
+		ip_increase = 2;
 		break;
 	}
 	case ADD_AX_IMM16:
 	{
 		uint16_t* imm16 = &sys->memory[cur_inst + 1];
 		sys->cpu.ax.whole += *imm16;
-		sys->cpu.ip.whole += 3;
+		ip_increase = 3;
 		break;
 	}
-	case MOV_RM8_R8: // 88 mm dd dd
+	case CALL_PTR16_16: // 9A ii ii
 	{
-		calc_modrm_byte(sys, cur_inst, &reg, &rmreg, &rm_mem_addr, NULL, 0, 0, 0);
+		sys->cpu.sp.whole -= 2;
+		uint16_t* stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
+		*stack = sys->cpu.cs.whole;
+		sys->cpu.sp.whole -= 2;
+		stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
+		*stack = sys->cpu.ip.whole;
 
-		if (rm_mem_addr != -1)
-		{
-			sys->memory[seg_mem(data_seg->whole, rm_mem_addr)] = *(uint8_t*)reg;
-			sys->cpu.ip.whole += 4;
-		}
+		uint16_t* ptr16 = &sys->memory[cur_inst + 1];
+		uint16_t* offset16 = &sys->memory[cur_inst + 3];
 
-		else
-		{
-			*(uint8_t*)rmreg = *(uint8_t*)reg;
-			sys->cpu.ip.whole += 2;
-		}
-
-		break;
-	}
-	case MOV_RM16_R16: // 89 mm dd dd
-	{
-		calc_modrm_byte(sys, cur_inst, &reg, &rmreg, &rm_mem_addr, NULL, 1, 0, 0);
-
-		uint16_t* rmmem = &sys->memory[seg_mem(data_seg->whole, rm_mem_addr)];
-
-		if (rm_mem_addr != -1)
-		{
-			*rmmem = *(uint16_t*)reg;
-			sys->cpu.ip.whole += 4;
-		}
-
-		else
-		{
-			*(uint16_t*)rmreg = *(uint16_t*)reg;
-			sys->cpu.ip.whole += 2;
-		}
+		sys->cpu.cs.whole = *ptr16;
+		sys->cpu.ip.whole = *offset16;
 
 		break;
 	}
-	case MOV_R8_RM8: // 8A mm dd dd
+	case CALL_REL16: // E8 ii ii
 	{
-		calc_modrm_byte(sys, cur_inst, &reg, &rmreg, &rm_mem_addr, NULL, 0, 0, 0);
+		sys->cpu.sp.whole -= 2;
+		uint16_t* stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
 
-		if (rm_mem_addr != -1)
-		{
-			*(uint8_t*)reg = sys->memory[seg_mem(data_seg->whole, rm_mem_addr)];
-			sys->cpu.ip.whole += 4;
-		}
+		*stack = sys->cpu.ip.whole;
 
-		else
-		{
-			*(uint8_t*)reg = *(uint8_t*)rmreg;
-			sys->cpu.ip.whole += 2;
-		}
+		int16_t* call_value = &sys->memory[cur_inst + 1];
 
+		ip_increase = *call_value + 3;
 		break;
 	}
-	case MOV_R16_RM16: // 8B mm dd dd
+
+	// 0x40 + i
+	case INC_R16:
+	case INC_R16 + 1:
+	case INC_R16 + 2:
+	case INC_R16 + 3:
+	case INC_R16 + 4:
+	case INC_R16 + 5:
+	case INC_R16 + 6:
+	case INC_R16 + 7:
 	{
-		calc_modrm_byte(sys, cur_inst, &reg, &rmreg, &rm_mem_addr, NULL, 1, 0, 0);
-
-		if (rm_mem_addr != -1)
-		{
-			uint16_t* rmmem = &sys->memory[seg_mem(data_seg->whole, rm_mem_addr)];
-			*(uint16_t*)reg = *(uint16_t*)rmmem;
-			sys->cpu.ip.whole += 4;
-		}
-
-		else
-		{
-			*(uint16_t*)reg = *(uint16_t*)rmreg;
-			sys->cpu.ip.whole += 2;
-		}
-
-		break;
-	}
-	case MOV_RM16_SREG: // 8C mm dd dd
-	{
-		calc_modrm_byte(sys, cur_inst, &reg, &rmreg, &rm_mem_addr, NULL, 1, 0, 1);
-
-		if (rm_mem_addr != -1)
-		{
-			uint16_t* rmmem = &sys->memory[seg_mem(data_seg->whole, rm_mem_addr)];
-			*(uint16_t*)rmmem = *(uint16_t*)reg;
-			sys->cpu.ip.whole += 4;
-		}
-
-		else
-		{
-			*(uint16_t*)rmreg = *(uint16_t*)reg;
-			sys->cpu.ip.whole += 2;
-		}
-
-		break;
-	}
-	case MOV_REG16_IMM16: // B8+x ii ii
-	case MOV_REG16_IMM16 + 1:
-	case MOV_REG16_IMM16 + 2:
-	case MOV_REG16_IMM16 + 3:
-	case MOV_REG16_IMM16 + 4:
-	case MOV_REG16_IMM16 + 5:
-	case MOV_REG16_IMM16 + 6:
-	case MOV_REG16_IMM16 + 7:
-	{
-		int reg_code = opcode - MOV_REG16_IMM16;
+		int reg_code = opcode - INC_R16;
 
 		reg = reg16_index(sys, reg_code);
 
-		uint16_t* imm16 = &sys->memory[cur_inst + 1];
-		*(uint16_t*)reg = *imm16;
+		(*(uint16_t*)reg)++;
 
-		sys->cpu.ip.whole += 3;
-
+		ip_increase = 1;
 		break;
 	}
-	case MOV_SREG_RM16: // 8E mm dd dd
+	case INT_IMM8: // CD ii
 	{
-		calc_modrm_byte(sys, cur_inst, &reg, &rmreg, &rm_mem_addr, NULL, 1, 0, 1);
+		uint8_t interrupt = sys->memory[cur_inst + 1];
 
-		if (rm_mem_addr != -1)
+		switch (interrupt)
 		{
-			uint16_t* rmmem = &sys->memory[seg_mem(data_seg->whole, rm_mem_addr)];
-			*(uint16_t*)reg = *rmmem;
-			sys->cpu.ip.whole += 4;
+		case 0x10:
+			bios_int_0x10(sys);
+			break;
 		}
 
-		else
-		{
-			*(uint16_t*)reg = *(uint16_t*)rmreg;
-			sys->cpu.ip.whole += 2;
-		}
-
-		break;
-	}
-	case MOV_AL_MOFFS8: // A0 dd dd
-	{
-		uint16_t* moffs8 = &sys->memory[cur_inst + 1];
-
-		sys->cpu.ax.low = sys->memory[seg_mem(data_seg->whole, *moffs8)];
-
-		sys->cpu.ip.whole += 3;
-		break;
-	}
-	case MOV_AX_MOFFS16: // A1 dd dd
-	{
-		uint16_t* moffs16 = &sys->memory[cur_inst + 1];
-		uint16_t* moffs16_real = &sys->memory[seg_mem(data_seg->whole, *moffs16)];
-
-		sys->cpu.ax.whole = *moffs16_real;
-
-		sys->cpu.ip.whole += 3;
-		break;
-	}
-	case MOV_RM8_IMM8: // C6 mm dd dd ii
-	{
-		int imm8 = 0;
-
-		calc_modrm_byte(sys, cur_inst, &reg, &rmreg, &rm_mem_addr, &imm8, 0, 1, 0);
-
-		if (rm_mem_addr != -1)
-		{
-			sys->memory[seg_mem(data_seg->whole, rm_mem_addr)] = (uint8_t)imm8;
-			sys->cpu.ip.whole += 5;
-		}
-
-		else
-		{
-			*(uint8_t*)rmreg = imm8;
-			sys->cpu.ip.whole += 3;
-		}
-
-		break;
-	}
-	case MOV_RM16_IMM16: // C7 mm dd dd ii ii
-	{
-		int imm16 = 0;
-
-		calc_modrm_byte(sys, cur_inst, &reg, &rmreg, &rm_mem_addr, &imm16, 1, 1, 0);
-
-		if (rm_mem_addr != -1)
-		{
-			uint16_t* rmmem = &sys->memory[seg_mem(data_seg->whole, rm_mem_addr)];
-			*rmmem = (uint16_t)imm16;
-			sys->cpu.ip.whole += 6;
-		}
-
-		else
-		{
-			*(uint16_t*)rmreg = imm16;
-			sys->cpu.ip.whole += 4;
-		}
-
+		ip_increase = 2;
 		break;
 	}
 	case JMP_REL8: // EB ii
 	{
-		sys->cpu.ip.whole += (int8_t)sys->memory[cur_inst + 1] + 2;
+		ip_increase = (int8_t)sys->memory[cur_inst + 1] + 2;
 		break;
 	}
 	case JMP_REL16: // E9 ii ii
 	{
 		int16_t* jmp_value = &sys->memory[cur_inst + 1];
 
-		sys->cpu.ip.whole += *jmp_value + 3;
+		ip_increase = *jmp_value + 3;
 		break;
 	}
 	case JMP_PTR16_16: // EA ii ii ii ii
@@ -651,6 +560,131 @@ void cpu_exec(Sys8086* sys)
 
 		break;
 	}
+	case MOV_RM8_R8: // 88 mm dd dd
+	{
+		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+		*(uint8_t*)regmem = *(uint8_t*)reg;
+
+		break;
+	}
+	case MOV_RM16_R16: // 89 mm dd dd
+	{
+		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+		*(uint16_t*)regmem = *(uint16_t*)reg;
+
+		break;
+	}
+	case MOV_R8_RM8: // 8A mm dd dd
+	{
+		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+
+		*(uint8_t*)reg = *(uint8_t*)regmem;
+
+		break;
+	}
+	case MOV_R16_RM16: // 8B mm dd dd
+	{
+		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+
+		*(uint16_t*)reg = *(uint16_t*)regmem;
+
+		break;
+	}
+	case MOV_RM16_SREG: // 8C mm dd dd
+	{
+		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 1);
+
+		*(uint16_t*)regmem = *(uint16_t*)reg;
+
+		break;
+	}
+	case MOV_SREG_RM16: // 8E mm dd dd
+	{
+		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 1);
+
+		*(uint16_t*)reg = *(uint16_t*)regmem;
+
+		break;
+	}
+	case MOV_AL_MOFFS8: // A0 dd dd
+	{
+		uint16_t* moffs8 = &sys->memory[cur_inst + 1];
+
+		sys->cpu.ax.low = sys->memory[seg_mem(data_seg->whole, *moffs8)];
+
+		ip_increase = 3;
+		break;
+	}
+	case MOV_AX_MOFFS16: // A1 dd dd
+	{
+		uint16_t* moffs16 = &sys->memory[cur_inst + 1];
+		uint16_t* moffs16_real = &sys->memory[seg_mem(data_seg->whole, *moffs16)];
+
+		sys->cpu.ax.whole = *moffs16_real;
+
+		ip_increase = 3;
+		break;
+	}
+	// B0 ii
+	case MOV_R8_IMM8: 
+	case MOV_R8_IMM8 + 1:
+	case MOV_R8_IMM8 + 2:
+	case MOV_R8_IMM8 + 3:
+	case MOV_R8_IMM8 + 4:
+	case MOV_R8_IMM8 + 5:
+	case MOV_R8_IMM8 + 6:
+	case MOV_R8_IMM8 + 7:
+	{
+		int reg_code = opcode - MOV_R8_IMM8;
+
+		reg = reg8_index(sys, reg_code);
+
+		*(uint8_t*)reg = sys->memory[cur_inst + 1];
+
+		ip_increase = 2;
+		break;
+	}
+	case MOV_R16_IMM16: // B8+x ii ii
+	case MOV_R16_IMM16 + 1:
+	case MOV_R16_IMM16 + 2:
+	case MOV_R16_IMM16 + 3:
+	case MOV_R16_IMM16 + 4:
+	case MOV_R16_IMM16 + 5:
+	case MOV_R16_IMM16 + 6:
+	case MOV_R16_IMM16 + 7:
+	{
+		int reg_code = opcode - MOV_R16_IMM16;
+
+		reg = reg16_index(sys, reg_code);
+
+		uint16_t* imm16 = &sys->memory[cur_inst + 1];
+		*(uint16_t*)reg = *imm16;
+
+		ip_increase = 3;
+
+		break;
+	}
+	case MOV_RM8_IMM8: // C6 mm dd dd ii
+	{
+		uint8_t imm8 = 0;
+
+		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm8, 0, 1, 0);
+
+		*(uint8_t*)regmem = imm8;
+		
+		break;
+	}
+	case MOV_RM16_IMM16: // C7 mm dd dd ii ii
+	{
+		uint16_t imm16 = 0;
+
+		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm16, 1, 1, 0);
+
+		*(uint16_t*)regmem = imm16;		
+
+		break;
+	}
+
 	case PUSH_R16: // 50 + i
 	case PUSH_R16 + 1:
 	case PUSH_R16 + 2:
@@ -670,7 +704,7 @@ void cpu_exec(Sys8086* sys)
 
 		*stack = *(uint16_t*)reg;
 
-		sys->cpu.ip.whole++;
+		ip_increase = 1;
 		break;
 	}
 	// 0x06
@@ -707,26 +741,15 @@ void cpu_exec(Sys8086* sys)
 
 		*stack = sreg->whole;
 
-		sys->cpu.ip.whole++;
+		ip_increase = 1;
 		break;
 	}
 	case POP_RM16: // 8F mm dd dd
 	{
-		calc_modrm_byte(sys, cur_inst, &reg, &rmreg, &rm_mem_addr, NULL, 1, 0, 0);
+		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
 		uint16_t* stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
 
-		if (rm_mem_addr != -1)
-		{
-			uint16_t* rmmem = &sys->memory[seg_mem(data_seg->whole, rm_mem_addr)];
-			*rmmem = *stack;
-			sys->cpu.ip.whole += 4;
-		}
-		
-		else
-		{
-			*(uint16_t*)rmreg = *stack;
-			sys->cpu.ip.whole += 2;
-		}
+		*(uint16_t*)regmem = *stack;
 
 		sys->cpu.sp.whole += 2;
 
@@ -750,7 +773,7 @@ void cpu_exec(Sys8086* sys)
 		*(uint16_t*)reg = *stack;
 
 		sys->cpu.sp.whole += 2;
-		sys->cpu.ip.whole += 2;
+		ip_increase = 2;
 		break;
 	}
 	// 0x07
@@ -786,11 +809,14 @@ void cpu_exec(Sys8086* sys)
 		sreg->whole = *stack;
 
 		sys->cpu.sp.whole += 2;
-		sys->cpu.ip.whole++;
+		ip_increase = 1;
 		break;
 	}
 	default:
 		sys->cpu.ip.whole++;
-		break;
+		return;
 	}
+
+
+	sys->cpu.ip.whole += ip_increase;
 }
