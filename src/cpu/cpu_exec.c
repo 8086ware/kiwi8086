@@ -135,6 +135,69 @@ void cpu_exec(Sys8086* sys)
 		}
 		break;
 	}
+	case GROUP_OPCODE_F6:
+	{
+		switch (group_opcode_instruction)
+		{
+		case MUL_RM8: // F6 mm
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+
+			uint16_t value = *(uint8_t*)regmem * sys->cpu.ax.low;
+
+			sys->cpu.ax.whole = value;
+
+			// Special flag case, don't use cpu_modify_flag* function
+			// If upper bytes are not 0 set the flags
+			if (sys->cpu.ax.whole & 0xff00)
+			{
+				sys->cpu.flag.whole |= FLAG_OVERFLOW;
+				sys->cpu.flag.whole |= FLAG_CARRY;
+			}
+			
+			else
+			{
+				sys->cpu.flag.whole &= ~FLAG_OVERFLOW;
+				sys->cpu.flag.whole &= ~FLAG_CARRY;
+			}
+
+			break;
+		}
+		}
+		break;
+	}
+	case GROUP_OPCODE_F7:
+	{
+		switch (group_opcode_instruction)
+		{
+		case MUL_RM16: // F7 mm
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+
+			uint32_t value = *(uint16_t*)regmem * sys->cpu.ax.whole;
+
+			sys->cpu.ax.whole = value & 0x0000ffff; // Store the lower bytes in ax
+			sys->cpu.dx.whole = (value & 0xffff0000) >> 16; // Store the higher bytes in dx
+
+			// Special flag case, don't use cpu_modify_flag* function
+			// If upper bytes are not 0 set the flags
+			if (sys->cpu.dx.whole != 0)
+			{
+				sys->cpu.flag.whole |= FLAG_OVERFLOW;
+				sys->cpu.flag.whole |= FLAG_CARRY;
+			}
+
+			else
+			{
+				sys->cpu.flag.whole &= ~FLAG_OVERFLOW;
+				sys->cpu.flag.whole &= ~FLAG_CARRY;
+			}
+
+			break;
+		}
+		}
+		break;
+	}
 	case GROUP_OPCODE_FE:
 	{
 		switch (group_opcode_instruction)

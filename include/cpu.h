@@ -19,6 +19,8 @@
 #define GROUP_OPCODE_80 0x80
 #define GROUP_OPCODE_81 0x81
 #define GROUP_OPCODE_83 0x83
+#define GROUP_OPCODE_F6 0xF6
+#define GROUP_OPCODE_F7 0xF7
 #define GROUP_OPCODE_FE 0xFE
 #define GROUP_OPCODE_FF 0xFF
 
@@ -66,6 +68,9 @@
 #define MOV_R16_IMM16 0xB8
 #define MOV_RM8_IMM8 0xC6
 #define MOV_RM16_IMM16 0xC7
+
+#define MUL_RM8 0x4 // Opcode group F6
+#define MUL_RM16 0x4 // Opcode group F7
 
 // Affects flag register
 #define INC_RM8 0x0 // Opcode group FE
