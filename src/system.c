@@ -40,6 +40,14 @@ Sys8086* init_sys(FILE* image)
 		sys->memory[i] = 0;
 	}
 
+	sys->cpu.flag.whole = 0;
+
+	sys->pic_master.vector_offset = 0x08;
+	sys->pic_slave.vector_offset = 0x70;
+
+	sys->pic_master.imr = 0;
+	sys->pic_slave.imr = 0;
+
 	fread(&sys->memory[0x7c00], sizeof(uint8_t), 512, image);
 	return sys;
 }
