@@ -5,6 +5,7 @@
 #include "cpu.h"
 #include <stdio.h>
 #include "vga.h"
+#include "8259pic.h"
 
 #define MAX_MEMORY_8086 1'048'576
 // Things to emulate:
@@ -21,6 +22,8 @@ typedef struct Sys8086
 	VGA display;
 	uint8_t* memory;
 	CPU cpu;
+	pic8259 pic_master;
+	pic8259 pic_slave;
 } Sys8086;
 
 Sys8086* init_sys(FILE* image);
