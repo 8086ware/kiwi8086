@@ -7,6 +7,14 @@
 #include "vga.h"
 
 #define MAX_MEMORY_8086 1'048'576
+// Things to emulate:
+// 8086 CPU
+// 1 Megabyte memory
+// VGA Display
+// I8042 PS/2 Controller
+// 8259 Programmable Interrupt Controller
+// Floppy disk controller
+// Intel 8253/8254 Programmable Interval Timer
 
 typedef struct Sys8086
 {
