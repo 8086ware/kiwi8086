@@ -519,10 +519,32 @@ void cpu_exec(Sys8086* sys)
 	{
 		uint8_t interrupt = sys->memory[cur_inst + 1];
 
-		switch (interrupt)
-		{
-		case 0x10:
-			bios_int_0x10(sys);
+		// Look up in interrupt vector table. Example: int 0x10, 0x10 * 4 = 0x40, get offset at 0x40 and segment at 0x42, jump there 
+
+		uint16_t* interrupt_offset = &sys->memory[seg_mem(0, interrupt * 4)];
+		uint16_t* interrupt_segment = &sys->memory[seg_mem(0, interrupt * 4) + 2];
+
+		sys->cpu.sp.whole -= 2;
+
+		uint16_t* stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
+
+		*stack = sys->cpu.flag.whole;
+
+		sys->cpu.sp.whole -= 2;
+
+		stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
+
+		*stack = sys->cpu.cs.whole;
+
+		sys->cpu.sp.whole -= 2;
+
+		stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
+
+		*stack = sys->cpu.ip.whole + 2; // +2 for next instruction
+
+		sys->cpu.ip.whole = *interrupt_offset;
+		sys->cpu.cs.whole = *interrupt_segment;
+
 			break;
 		}
 
