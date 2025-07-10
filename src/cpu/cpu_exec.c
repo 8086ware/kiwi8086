@@ -547,8 +547,28 @@ void cpu_exec(Sys8086* sys)
 
 			break;
 		}
+	case IRET: // 0xCF
+	{
+		// pop ip, cs, and flags after interrupt
 
-		ip_increase = 2;
+		uint16_t* stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
+
+		sys->cpu.ip.whole = *stack;
+
+		sys->cpu.sp.whole += 2;
+
+		stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
+
+		*stack = sys->cpu.cs.whole;
+
+		sys->cpu.sp.whole += 2;
+
+		stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
+
+		sys->cpu.flag.whole = *stack;
+
+		sys->cpu.sp.whole += 2;
+
 		break;
 	}
 	case JA_REL8: // 77 ii

@@ -77,6 +77,10 @@
 #define INC_RM16 0x0 // Opcode group FF
 #define INC_R16 0x40
 
+#define INT_IMM8 0xCD
+
+#define IRET 0xCF
+
 // Affects flag register
 #define JMP_REL8 0xEB
 #define JMP_REL16 0xE9
@@ -113,8 +117,6 @@
 #define RET_FAR 0xCB
 #define RET_NEAR_IMM16 0xC2
 #define RET_FAR_IMM16 0xCA
-
-#define INT_IMM8 0xCD
 
 typedef union Register
 {
