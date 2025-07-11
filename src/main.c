@@ -181,7 +181,7 @@ int main(int argc, char** argv) {
 
         tm_win_cursor(emuwin, sys->display.cursor_x[sys->display.display_page], sys->display.cursor_y[sys->display.display_page]);
 
-        tm_win_print(debugwin, "AX: %x, BX: %x, CX: %x, DX: %x, CS: %x, DS: %x, SS: %x, ES: %x, SP: %x, BP: %x, SI: %x, DI: %x, IP: %x, FLAGS: %x",
+        tm_win_print(debugwin, "AX: %x\nBX: %x\nCX: %x\nDX: %x\nCS: %x\nDS: %x\nSS: %x\nES: %x\nSP: %x\nBP: %x\nSI: %x\nDI: %x\nIP: %x\nFLAGS: %x",
             sys->cpu.ax.whole, sys->cpu.bx.whole, sys->cpu.cx.whole, sys->cpu.dx.whole, sys->cpu.cs.whole, sys->cpu.ds.whole, sys->cpu.ss.whole, sys->cpu.es.whole, sys->cpu.sp.whole, sys->cpu.bp.whole, sys->cpu.si.whole, sys->cpu.di.whole, sys->cpu.ip.whole, sys->cpu.flag.whole);
         tm_win_print(debugwin, "\nLast 10 items on stack: \n");
 
