@@ -21,6 +21,34 @@ void cpu_exec(Sys8086* sys)
 		{
 			irq_vector_offset = sys->pic_master.irq + sys->pic_slave.vector_offset;
 		}
+
+		uint16_t* interrupt_offset = &sys->memory[seg_mem(0, irq_vector_offset * 4)];
+		uint16_t* interrupt_segment = &sys->memory[seg_mem(0, irq_vector_offset * 4) + 2];
+
+		sys->cpu.sp.whole -= 2;
+
+		uint16_t* stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
+
+		*stack = sys->cpu.flag.whole;
+
+		sys->cpu.sp.whole -= 2;
+
+		stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
+
+		*stack = sys->cpu.cs.whole;
+
+		sys->cpu.sp.whole -= 2;
+
+		stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
+
+		*stack = sys->cpu.ip.whole;
+
+		sys->cpu.ip.whole = *interrupt_offset;
+		sys->cpu.cs.whole = *interrupt_segment;
+
+		sys->cpu.halted = 0;
+
+		sys->pic_master.irq = -1;
 	}
 
 	if (!sys->cpu.halted)
