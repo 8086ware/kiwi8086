@@ -45,6 +45,9 @@ Sys8086* init_sys(FILE* image)
 	sys->pic_master.vector_offset = 0x08;
 	sys->pic_slave.vector_offset = 0x70;
 
+	sys->pic_master.irq = -1;
+	sys->pic_slave.irq = -1;
+
 	sys->pic_master.imr = 0;
 	sys->pic_slave.imr = 0;
 
