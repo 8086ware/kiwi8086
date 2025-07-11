@@ -54,7 +54,6 @@ void cpu_exec(Sys8086* sys)
 
 	if (!sys->cpu.halted)
 	{
-	
 	int ip_increase = 0;
 
 	Register* data_seg = &sys->cpu.ds;
