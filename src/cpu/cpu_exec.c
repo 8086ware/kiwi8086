@@ -23,6 +23,9 @@ void cpu_exec(Sys8086* sys)
 		}
 	}
 
+	if (!sys->cpu.halted)
+	{
+	
 	int ip_increase = 0;
 
 	Register* data_seg = &sys->cpu.ds;
@@ -487,6 +490,12 @@ void cpu_exec(Sys8086* sys)
 
 		ip_increase = 1;
 
+		break;
+	}
+	case HLT:
+	{
+		sys->cpu.halted = 1;
+		ip_increase = 1;
 		break;
 	}
 	// 0x40 + i
@@ -1129,4 +1138,5 @@ void cpu_exec(Sys8086* sys)
 	}
 
 	sys->cpu.ip.whole += ip_increase;
+}
 }

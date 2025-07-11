@@ -54,23 +54,7 @@
 #define DEC_RM16 0x1 // Opcode group FF
 #define DEC_R16 0x48
 
-#define MOV_RM8_R8 0x88
-#define MOV_RM16_R16 0x89
-#define MOV_R8_RM8 0x8A
-#define MOV_R16_RM16 0x8B
-#define MOV_RM16_SREG 0x8C
-#define MOV_SREG_RM16 0x8E
-#define MOV_AL_MOFFS8 0xA0
-#define MOV_AX_MOFFS16 0xA1
-#define MOV_MOFFS8_AL 0xA2
-#define MOV_MOFFS16_AX 0xA3
-#define MOV_R8_IMM8 0xB0
-#define MOV_R16_IMM16 0xB8
-#define MOV_RM8_IMM8 0xC6
-#define MOV_RM16_IMM16 0xC7
-
-#define MUL_RM8 0x4 // Opcode group F6
-#define MUL_RM16 0x4 // Opcode group F7
+#define HLT 0xF4
 
 // Affects flag register
 #define INC_RM8 0x0 // Opcode group FE
@@ -105,6 +89,24 @@
 #define JP_REL8 0x7A
 #define JS_REL8 0x78
 
+#define MOV_RM8_R8 0x88
+#define MOV_RM16_R16 0x89
+#define MOV_R8_RM8 0x8A
+#define MOV_R16_RM16 0x8B
+#define MOV_RM16_SREG 0x8C
+#define MOV_SREG_RM16 0x8E
+#define MOV_AL_MOFFS8 0xA0
+#define MOV_AX_MOFFS16 0xA1
+#define MOV_MOFFS8_AL 0xA2
+#define MOV_MOFFS16_AX 0xA3
+#define MOV_R8_IMM8 0xB0
+#define MOV_R16_IMM16 0xB8
+#define MOV_RM8_IMM8 0xC6
+#define MOV_RM16_IMM16 0xC7
+
+#define MUL_RM8 0x4 // Opcode group F6
+#define MUL_RM16 0x4 // Opcode group F7
+
 #define PUSH_R16 0x50
 #define PUSH_RM16 0x6 // Opcode group FF
 #define PUSH_SREG 0x06
@@ -131,6 +133,8 @@ typedef union Register
 
 typedef struct CPU
 {
+	_Bool halted;
+
 	// General purpose registers
 
 	Register ax;
