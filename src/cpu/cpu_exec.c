@@ -6,6 +6,7 @@ void cpu_exec(Sys8086* sys)
 	if (sys->pic_slave.irq != -1) // Give the request to the master pic
 	{
 		sys->pic_master.irq = sys->pic_slave.irq;
+		sys->pic_slave.irq = -1;
 	}
 
 	int irq_vector_offset = 0;
@@ -582,8 +583,8 @@ void cpu_exec(Sys8086* sys)
 		sys->cpu.ip.whole = *interrupt_offset;
 		sys->cpu.cs.whole = *interrupt_segment;
 
-			break;
-		}
+		break;
+	}
 	case IRET: // 0xCF
 	{
 		// pop ip, cs, and flags after interrupt
@@ -1166,5 +1167,5 @@ void cpu_exec(Sys8086* sys)
 	}
 
 	sys->cpu.ip.whole += ip_increase;
-}
+	}
 }
