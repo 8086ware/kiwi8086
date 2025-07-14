@@ -39,6 +39,7 @@ void cpu_exec(Sys8086* sys)
 		sys->pic_master.irq = -1;
 	}
 
+	// Fetch, Decode and execute instruction
 	if (!sys->cpu.halted)
 	{
 	int ip_increase = 0;
