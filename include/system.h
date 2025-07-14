@@ -14,8 +14,9 @@
 // VGA Display
 // I8042 PS/2 Controller
 // 8259 Programmable Interrupt Controller
-// Floppy disk controller
+// 8271 Floppy disk controller
 // Intel 8253/8254 Programmable Interval Timer
+// 8237 DMA Controller
 
 typedef struct Sys8086
 {
