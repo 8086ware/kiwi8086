@@ -1,5 +1,6 @@
 #include "system.h"
-#include "bios.h"
+#include "cpu/instructions.h"
+#include "memory.h"
 
 void cpu_exec(Sys8086* sys)
 {
