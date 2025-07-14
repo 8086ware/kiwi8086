@@ -89,6 +89,14 @@ void cpu_exec(Sys8086* sys)
 	{
 		switch (group_opcode_instruction)
 		{
+			case ADD_RM8_IMM8: // 80 mm ii
+			{
+				uint8_t imm = 0;
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 0, 0, 0);
+
+				add8(sys, regmem, imm);
+				break;
+			}
 		case CMP_RM8_IMM8: // 80 mm ii
 		{
 			uint8_t imm = 0;
@@ -104,6 +112,14 @@ void cpu_exec(Sys8086* sys)
 	{
 		switch (group_opcode_instruction)
 		{
+			case ADD_RM16_IMM16: // 81 mm ii ii
+			{
+				uint16_t imm = 0;
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 1, 0);
+
+				add16(sys, regmem, imm);
+				break;
+			}
 		case CMP_RM16_IMM16: // 81 mm ii ii
 		{
 			uint16_t imm = 0;
@@ -119,12 +135,18 @@ void cpu_exec(Sys8086* sys)
 	{
 		switch (group_opcode_instruction)
 		{
-		case CMP_RM16_IMM8: // 81 mm ii
+			case ADD_RM16_IMM8:
 		{
 			uint16_t imm = 0;
 			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 0, 0);
 
-			uint16_t temp = *(uint16_t*)regmem - imm;
+				add16(sys, regmem, imm);
+				break;
+			}
+			case CMP_RM16_IMM8: // 83 mm ii
+			{
+				int16_t imm = 0;
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 0, 0);
 
 				cmp16(sys, *(uint16_t*)regmem, imm);
 			break;
@@ -239,7 +261,31 @@ void cpu_exec(Sys8086* sys)
 
 		break;
 	}
-	case ADD_AL_IMM8:
+		case ADD_RM8_R8: // 00 mm
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+			add8(sys, regmem, *(uint8_t*)reg);
+			break;
+		}
+		case ADD_RM16_R16: // 01 mm
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+			add16(sys, regmem, *(uint16_t*)reg);
+			break;
+		}
+		case ADD_R8_RM8: // 02 mm
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+			add8(sys, reg, *(uint8_t*)regmem);
+			break;
+		}
+		case ADD_R16_RM16: // 03 mm
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+			add16(sys, reg, *(uint16_t*)regmem);
+			break;
+		}
+		case ADD_AL_IMM8: // 04 ii
 	{
 			add8(sys, &sys->cpu.ax.low, read_address8(sys, cur_inst + 1, 0));
 		ip_increase = 2;
