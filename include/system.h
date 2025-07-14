@@ -2,7 +2,7 @@
 #define SYSTEM_H
 
 #include <stdint.h>
-#include "cpu.h"
+#include "cpu/cpu.h"
 #include <stdio.h>
 #include "vga.h"
 #include "8259pic.h"
