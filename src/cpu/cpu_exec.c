@@ -24,29 +24,15 @@ void cpu_exec(Sys8086* sys)
 			irq_vector_offset = sys->pic_master.irq + sys->pic_slave.vector_offset;
 		}
 
-		uint16_t* interrupt_offset = &sys->memory[seg_mem(0, irq_vector_offset * 4)];
-		uint16_t* interrupt_segment = &sys->memory[seg_mem(0, irq_vector_offset * 4) + 2];
+		push(sys, sys->cpu.flag.whole);
+		push(sys, sys->cpu.cs.whole);
+		push(sys, sys->cpu.ip.whole);
 
-		sys->cpu.sp.whole -= 2;
+		uint16_t interrupt_offset = read_address16(sys, seg_mem(0, irq_vector_offset * 4), 0);
+		uint16_t interrupt_segment = read_address16(sys, seg_mem(0, irq_vector_offset * 4) + 2, 0);
 
-		uint16_t* stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
-
-		*stack = sys->cpu.flag.whole;
-
-		sys->cpu.sp.whole -= 2;
-
-		stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
-
-		*stack = sys->cpu.cs.whole;
-
-		sys->cpu.sp.whole -= 2;
-
-		stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
-
-		*stack = sys->cpu.ip.whole;
-
-		sys->cpu.ip.whole = *interrupt_offset;
-		sys->cpu.cs.whole = *interrupt_segment;
+		sys->cpu.ip.whole = interrupt_offset;
+		sys->cpu.cs.whole = interrupt_segment;
 
 		sys->cpu.halted = 0;
 
@@ -67,9 +53,11 @@ void cpu_exec(Sys8086* sys)
 	void* reg = NULL; 
 	void* regmem = NULL;
 
-	uint8_t opcode = sys->memory[cur_inst];
+		uint8_t opcode = read_address8(sys, cur_inst, 0);
+		uint8_t group_opcode_instruction = (read_address8(sys, cur_inst + 1, 0) & 0b00111000) >> 3; // if opcode is an opcode group, this is valid, reg part identifies the opcode in mod rm byte
+		uint8_t opcode_prefix = read_address8(sys, cur_inst - 1, 0);
 
-	switch (sys->memory[cur_inst - 1]) // opcode prefix
+		switch (opcode_prefix) // opcode prefix
 	{
 	case PREFIX_ES:
 	{
@@ -94,7 +82,6 @@ void cpu_exec(Sys8086* sys)
 	}
 
 	// In the opcodes, dd is displacement and ii is immediate and mm is mod. All of them are optional
-	uint8_t group_opcode_instruction = (sys->memory[cur_inst + 1] & 0b00111000) >> 3; // reg part identifies the opcode in mod rm byte
 
 	switch (opcode) // actual opcode
 	{
@@ -107,15 +94,7 @@ void cpu_exec(Sys8086* sys)
 			uint8_t imm = 0;
 			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 0, 0, 0);
 
-			uint8_t temp = *(uint8_t*)regmem - imm;
-
-			cpu_modify_flag_carry(sys, *(uint8_t*)regmem, temp, 0);
-			cpu_modify_flag_half_carry(sys, *(uint8_t*)regmem, temp);
-			cpu_modify_flag_zero(sys, temp);
-			cpu_modify_flag_parity(sys, temp);
-			cpu_modify_flag_sign(sys, temp, 0);
-			cpu_modify_flag_overflow(sys, *(uint8_t*)regmem, imm, temp, 0);
-
+				cmp8(sys, *(uint8_t*)regmem, imm);
 			break;
 		}
 		}
@@ -130,15 +109,7 @@ void cpu_exec(Sys8086* sys)
 			uint16_t imm = 0;
 			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 1, 0);
 
-			uint16_t temp = *(uint16_t*)regmem - imm;
-
-			cpu_modify_flag_carry(sys, *(uint16_t*)regmem, temp, 1);
-			cpu_modify_flag_half_carry(sys, *(uint16_t*)regmem, temp);
-			cpu_modify_flag_zero(sys, temp);
-			cpu_modify_flag_parity(sys, temp);
-			cpu_modify_flag_sign(sys, temp, 1);
-			cpu_modify_flag_overflow(sys, *(uint16_t*)regmem, imm, temp, 1);
-
+				cmp16(sys, *(uint16_t*)regmem, imm);
 			break;
 		}
 		}
@@ -155,13 +126,7 @@ void cpu_exec(Sys8086* sys)
 
 			uint16_t temp = *(uint16_t*)regmem - imm;
 
-			cpu_modify_flag_carry(sys, *(uint16_t*)regmem, temp, 1);
-			cpu_modify_flag_half_carry(sys, *(uint16_t*)regmem, temp);
-			cpu_modify_flag_zero(sys, temp);
-			cpu_modify_flag_parity(sys, temp);
-			cpu_modify_flag_sign(sys, temp, 1);
-			cpu_modify_flag_overflow(sys, *(uint16_t*)regmem, imm, temp, 1);
-
+				cmp16(sys, *(uint16_t*)regmem, imm);
 			break;
 		}
 		}
@@ -175,23 +140,7 @@ void cpu_exec(Sys8086* sys)
 		{
 			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
 
-			uint16_t value = *(uint8_t*)regmem * sys->cpu.ax.low;
-
-			sys->cpu.ax.whole = value;
-
-			// Special flag case, don't use cpu_modify_flag* function
-			// If upper bytes are not 0 set the flags
-			if (sys->cpu.ax.whole & 0xff00)
-			{
-				sys->cpu.flag.whole |= FLAG_OVERFLOW;
-				sys->cpu.flag.whole |= FLAG_CARRY;
-			}
-			
-			else
-			{
-				sys->cpu.flag.whole &= ~FLAG_OVERFLOW;
-				sys->cpu.flag.whole &= ~FLAG_CARRY;
-			}
+				mul8(sys, *(uint8_t*)regmem);
 
 			break;
 		}
@@ -206,24 +155,7 @@ void cpu_exec(Sys8086* sys)
 		{
 			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
 
-			uint32_t value = *(uint16_t*)regmem * sys->cpu.ax.whole;
-
-			sys->cpu.ax.whole = value & 0x0000ffff; // Store the lower bytes in ax
-			sys->cpu.dx.whole = (value & 0xffff0000) >> 16; // Store the higher bytes in dx
-
-			// Special flag case, don't use cpu_modify_flag* function
-			// If upper bytes are not 0 set the flags
-			if (sys->cpu.dx.whole != 0)
-			{
-				sys->cpu.flag.whole |= FLAG_OVERFLOW;
-				sys->cpu.flag.whole |= FLAG_CARRY;
-			}
-
-			else
-			{
-				sys->cpu.flag.whole &= ~FLAG_OVERFLOW;
-				sys->cpu.flag.whole &= ~FLAG_CARRY;
-			}
+				mul16(sys, *(uint16_t*)regmem);
 
 			break;
 		}
@@ -237,31 +169,13 @@ void cpu_exec(Sys8086* sys)
 		case DEC_RM8: // FE mm dd dd
 		{
 			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-
-			uint8_t old_val = (*(uint8_t*)regmem);
-
-			(*(uint8_t*)regmem)--;
-
-			cpu_modify_flag_half_carry(sys, old_val, (*(uint8_t*)regmem));
-			cpu_modify_flag_zero(sys, (*(uint8_t*)regmem));
-			cpu_modify_flag_parity(sys, (*(uint8_t*)regmem));
-			cpu_modify_flag_sign(sys, (*(uint8_t*)regmem), 1);
-
+				dec8(sys, regmem);
 			break;
 		}
 		case INC_RM8: // FE mm dd dd
 		{
 			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-
-			uint8_t old_val = (*(uint8_t*)regmem);
-
-			(*(uint8_t*)regmem)++;
-
-			cpu_modify_flag_half_carry(sys, old_val, (*(uint8_t*)regmem));
-			cpu_modify_flag_zero(sys, (*(uint8_t*)regmem));
-			cpu_modify_flag_parity(sys, (*(uint8_t*)regmem));
-			cpu_modify_flag_sign(sys, (*(uint8_t*)regmem), 0);
-
+				inc8(sys, regmem);
 			break;
 		}
 		}
@@ -275,80 +189,50 @@ void cpu_exec(Sys8086* sys)
 		case DEC_RM16: // FF mm dd dd
 		{
 			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
-			uint16_t old_val = (*(uint16_t*)regmem);
-
-			(*(uint16_t*)regmem)--;
-
+				inc16(sys, regmem);
 			break;
 		}
 		// 0x2
 		case CALL_RM16: // FF mm dd dd
 		{
-			sys->cpu.sp.whole -= 2;
-			uint16_t* stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
-
-			*stack = sys->cpu.ip.whole;
-
 			calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
-			sys->cpu.ip.whole = *(uint16_t*)regmem;
-
+				push(sys, sys->cpu.ip.whole);
+				jmp(sys, sys->cpu.cs.whole, *(uint16_t*)regmem);
 			break;
 		}
 		// 0x3
 		case CALL_M16_16: // FF mm
 		{
-			sys->cpu.sp.whole -= 2;
-			uint16_t* stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
-			*stack = sys->cpu.cs.whole;
-			sys->cpu.sp.whole -= 2;
-			stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
-			*stack = sys->cpu.ip.whole;
+				push(sys, sys->cpu.cs.whole);
+				push(sys, sys->cpu.ip.whole);
 
 			calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
 
-			sys->cpu.cs.whole = *(uint16_t*)regmem;
-			((uint16_t*)regmem)++;
-			sys->cpu.ip.whole = *(uint16_t*)regmem;
+				uint16_t segment = read_address16(sys, *(uint16_t*)regmem, 0);
+				uint16_t offset = read_address16(sys, *(uint16_t*)regmem + 2, 0);
 
+				jmp(sys, segment, offset);
 			break;
 		}
 		// 0x4
 		case JMP_RM16: // FF mm dd dd
 		{
 			calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
-			sys->cpu.ip.whole = *(uint16_t*)regmem;
-
+				jmp(sys, sys->cpu.cs.whole, *(uint16_t*)regmem);
 			break;
 		}
 		// 0x6
 		case PUSH_RM16: // FF mm dd dd
 		{
 			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-			sys->cpu.sp.whole -= 2;
-
-			uint16_t* stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
-
-			*stack = *(uint16_t*)regmem;
-
+				push(sys, *(uint16_t*)regmem);
 			break;
 		}
 		// 0x0
 		case INC_RM16: // FF mm dd dd
 		{
 			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
-			uint16_t old_val = (*(uint16_t*)regmem);
-
-			(*(uint16_t*)regmem)++;
-
-			cpu_modify_flag_half_carry(sys, old_val, (*(uint16_t*)regmem));
-			cpu_modify_flag_zero(sys, (*(uint16_t*)regmem));
-			cpu_modify_flag_parity(sys, (*(uint16_t*)regmem));
-			cpu_modify_flag_sign(sys, (*(uint16_t*)regmem), 1);
-	
+				inc16(sys, *(uint16_t*)regmem);
 			break;
 		}
 		}
@@ -357,141 +241,72 @@ void cpu_exec(Sys8086* sys)
 	}
 	case ADD_AL_IMM8:
 	{
-		uint8_t old_val = sys->cpu.ax.low;
-		sys->cpu.ax.low += sys->memory[cur_inst + 1];
+			add8(sys, &sys->cpu.ax.low, read_address8(sys, cur_inst + 1, 0));
 		ip_increase = 2;
- 
-		cpu_modify_flag_carry(sys, old_val, sys->cpu.ax.low, 0);
-		cpu_modify_flag_half_carry(sys, old_val, sys->cpu.ax.low);
-		cpu_modify_flag_zero(sys, sys->cpu.ax.low);
-		cpu_modify_flag_parity(sys, sys->cpu.ax.low);
-		cpu_modify_flag_sign(sys, sys->cpu.ax.low, 0);
-
 		break;
 	}
-	case ADD_AX_IMM16:
+		case ADD_AX_IMM16: // 05 ii ii
 	{
-		uint16_t* imm16 = &sys->memory[cur_inst + 1];
-		sys->cpu.ax.whole += *imm16;
+			add16(sys, &sys->cpu.ax.whole, read_address16(sys, cur_inst + 1, 0));
 		ip_increase = 3;
 		break;
 	}
 	case CALL_PTR16_16: // 9A ii ii ii ii
 	{
-		sys->cpu.sp.whole -= 2;
-		uint16_t* stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
-		*stack = sys->cpu.cs.whole;
-		sys->cpu.sp.whole -= 2;
-		stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
-		*stack = sys->cpu.ip.whole + 6;
+			push(sys, sys->cpu.cs.whole);
+			push(sys, sys->cpu.ip.whole);
 
-		uint16_t* ptr16 = &sys->memory[cur_inst + 1];
-		uint16_t* offset16 = &sys->memory[cur_inst + 3];
+			uint16_t segment = read_address16(sys, read_address16(sys, cur_inst + 1, 0), 0);
+			uint16_t offset = read_address16(sys, read_address16(sys, cur_inst + 3, 0), 0);
 
-		sys->cpu.cs.whole = *ptr16;
-		sys->cpu.ip.whole = *offset16;
+			jmp(sys, segment, offset);
 
 		break;
 	}
 	case CALL_REL16: // E8 ii ii
 	{
-		sys->cpu.sp.whole -= 2;
-		uint16_t* stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
+			push(sys, sys->cpu.ip.whole + 3);
 
-		*stack = sys->cpu.ip.whole + 3;
+			int16_t call_value = read_address16(sys, cur_inst + 1, 0) + 3;
 
-		int16_t* call_value = &sys->memory[cur_inst + 1];
+			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + call_value);
 
-		ip_increase = *call_value + 3;
 		break;
 	}
 	case CMP_AL_IMM8: // 3C ii
 	{
-		uint8_t temp = sys->cpu.ax.low - sys->memory[cur_inst + 1];
-
-		cpu_modify_flag_carry(sys, sys->cpu.ax.low, temp, 0);
-		cpu_modify_flag_half_carry(sys, sys->cpu.ax.low, temp);
-		cpu_modify_flag_zero(sys, temp);
-		cpu_modify_flag_parity(sys, temp);
-		cpu_modify_flag_sign(sys, temp, 0);
-		cpu_modify_flag_overflow(sys, sys->cpu.ax.low, sys->memory[cur_inst + 1], temp, 0);
-
+			cmp8(sys, sys->cpu.ax.low, read_address8(sys, cur_inst + 1, 0));
 		ip_increase = 2;
 		break;
 	}
 	case CMP_AX_IMM16: // 3D ii ii
 	{
-		uint16_t* imm16 = &sys->memory[cur_inst + 1];
-		uint16_t temp = sys->cpu.ax.whole - *imm16;
-
-		cpu_modify_flag_carry(sys, sys->cpu.ax.whole, temp, 1);
-		cpu_modify_flag_half_carry(sys, sys->cpu.ax.whole, temp);
-		cpu_modify_flag_zero(sys, temp);
-		cpu_modify_flag_parity(sys, temp);
-		cpu_modify_flag_sign(sys, temp, 1);
-		cpu_modify_flag_overflow(sys, sys->cpu.ax.whole, *imm16, temp, 1);
-
+			cmp16(sys, sys->cpu.ax.whole, read_address16(sys, cur_inst + 1, 0));
 		ip_increase = 3;
 		break;
 	}
 	case CMP_RM8_R8: // 38 mm
 	{
 		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-
-		uint8_t temp = *(uint8_t*)regmem - *(uint8_t*)reg;
-
-		cpu_modify_flag_carry(sys, *(uint8_t*)regmem, temp, 0);
-		cpu_modify_flag_half_carry(sys, *(uint8_t*)regmem, temp);
-		cpu_modify_flag_zero(sys, temp);
-		cpu_modify_flag_parity(sys, temp);
-		cpu_modify_flag_sign(sys, temp, 0);
-		cpu_modify_flag_overflow(sys, *(uint8_t*)regmem, *(uint8_t*)reg, temp, 0);
-
+			cmp8(sys, *(uint8_t*)regmem, *(uint8_t*)reg);
 		break;
 	}
 	case CMP_RM16_R16: // 39 mm
 	{
 		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
-		uint16_t temp = *(uint16_t*)regmem - *(uint16_t*)reg;
-
-		cpu_modify_flag_carry(sys, *(uint16_t*)regmem, temp, 1);
-		cpu_modify_flag_half_carry(sys, *(uint16_t*)regmem, temp);
-		cpu_modify_flag_zero(sys, temp);
-		cpu_modify_flag_parity(sys, temp);
-		cpu_modify_flag_sign(sys, temp, 1);
-		cpu_modify_flag_overflow(sys, *(uint8_t*)regmem, *(uint8_t*)reg, temp, 1);
-
+			cmp16(sys, *(uint16_t*)regmem, *(uint16_t*)reg);
 		break;
 	}
 	case CMP_R8_RM8: // 3A mm
 	{
 		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-
-		uint8_t temp = *(uint8_t*)reg - *(uint8_t*)regmem;
-
-		cpu_modify_flag_carry(sys, *(uint8_t*)reg, temp, 0);
-		cpu_modify_flag_half_carry(sys, *(uint8_t*)reg, temp);
-		cpu_modify_flag_zero(sys, temp);
-		cpu_modify_flag_parity(sys, temp);
-		cpu_modify_flag_sign(sys, temp, 0);
-		cpu_modify_flag_overflow(sys, *(uint8_t*)reg, *(uint8_t*)regmem, temp, 0);
-
+			cmp8(sys, *(uint8_t*)reg, *(uint8_t*)regmem);
 		break;
 	}
 	case CMP_R16_RM16: // 3B mm
 	{
 		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
-		uint16_t temp = *(uint16_t*)reg - *(uint16_t*)regmem;
-
-		cpu_modify_flag_carry(sys, *(uint16_t*)reg, temp, 0);
-		cpu_modify_flag_half_carry(sys, *(uint16_t*)reg, temp);
-		cpu_modify_flag_zero(sys, temp);
-		cpu_modify_flag_parity(sys, temp);
-		cpu_modify_flag_sign(sys, temp, 0);
-		cpu_modify_flag_overflow(sys, *(uint8_t*)reg, *(uint8_t*)regmem, temp, 1);
-
+			cmp8(sys, *(uint16_t*)reg, *(uint16_t*)regmem);
 		break;
 	}
 	// 0x48 + i
@@ -508,17 +323,7 @@ void cpu_exec(Sys8086* sys)
 
 		reg = reg16_index(&sys->cpu, reg_code);
 
-		uint16_t old_val = (*(uint16_t*)reg);
-
-		(*(uint16_t*)reg)--;
-
-		cpu_modify_flag_half_carry(sys, old_val, (*(uint16_t*)reg));
-		cpu_modify_flag_zero(sys, (*(uint16_t*)reg));
-		cpu_modify_flag_parity(sys, (*(uint16_t*)reg));
-		cpu_modify_flag_sign(sys, (*(uint16_t*)reg), 1);
-
-		ip_increase = 1;
-
+			dec16(sys, reg);
 		break;
 	}
 	case HLT:
@@ -527,7 +332,7 @@ void cpu_exec(Sys8086* sys)
 		ip_increase = 1;
 		break;
 	}
-	// 0x40 + i
+		// 40 + i
 	case INC_R16:
 	case INC_R16 + 1:
 	case INC_R16 + 2:
@@ -541,71 +346,33 @@ void cpu_exec(Sys8086* sys)
 
 		reg = reg16_index(&sys->cpu, reg_code);
 
-		uint16_t old_val = (*(uint16_t*)reg);
-
-		(*(uint16_t*)reg)++;
-
-		cpu_modify_flag_half_carry(sys, old_val, (*(uint16_t*)reg));
-		cpu_modify_flag_zero(sys, (*(uint16_t*)reg));
-		cpu_modify_flag_parity(sys, (*(uint16_t*)reg));
-		cpu_modify_flag_sign(sys, (*(uint16_t*)reg), 1);
+			inc16(sys, reg);
 
 		ip_increase = 1;
 		break;
 	}
 	case INT_IMM8: // CD ii
 	{
-		uint8_t interrupt = sys->memory[cur_inst + 1];
+			uint8_t interrupt = read_address8(sys, cur_inst + 1, 0);
 
 		// Look up in interrupt vector table. Example: int 0x10, 0x10 * 4 = 0x40, get offset at 0x40 and segment at 0x42, jump there 
 
-		uint16_t* interrupt_offset = &sys->memory[seg_mem(0, interrupt * 4)];
-		uint16_t* interrupt_segment = &sys->memory[seg_mem(0, interrupt * 4) + 2];
+			uint16_t interrupt_offset = read_address16(sys, seg_mem(0, interrupt * 4), 0);
+			uint16_t interrupt_segment = read_address16(sys, seg_mem(0, interrupt * 4) + 2, 0);
 
-		sys->cpu.sp.whole -= 2;
-
-		uint16_t* stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
-
-		*stack = sys->cpu.flag.whole;
-
-		sys->cpu.sp.whole -= 2;
-
-		stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
-
-		*stack = sys->cpu.cs.whole;
-
-		sys->cpu.sp.whole -= 2;
-
-		stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
-
-		*stack = sys->cpu.ip.whole + 2; // +2 for next instruction
-
-		sys->cpu.ip.whole = *interrupt_offset;
-		sys->cpu.cs.whole = *interrupt_segment;
+			push(sys, sys->cpu.flag.whole);
+			push(sys, sys->cpu.cs.whole);
+			push(sys, sys->cpu.ip.whole);
 
 		break;
 	}
-	case IRET: // 0xCF
+		case IRET: // CF
 	{
 		// pop ip, cs, and flags after interrupt
 
-		uint16_t* stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
-
-		sys->cpu.ip.whole = *stack;
-
-		sys->cpu.sp.whole += 2;
-
-		stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
-
-		*stack = sys->cpu.cs.whole;
-
-		sys->cpu.sp.whole += 2;
-
-		stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
-
-		sys->cpu.flag.whole = *stack;
-
-		sys->cpu.sp.whole += 2;
+			pop(sys, &sys->cpu.ip.whole);
+			pop(sys, &sys->cpu.cs.whole);
+			pop(sys, &sys->cpu.flag.whole);
 
 		break;
 	}
@@ -613,7 +380,7 @@ void cpu_exec(Sys8086* sys)
 	{
 		if ((sys->cpu.flag.whole & FLAG_CARRY) == 0 && (sys->cpu.flag.whole & FLAG_ZERO) == 0)
 		{
-			ip_increase = (int8_t)sys->memory[cur_inst + 1] + 2;
+				jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
 		}
 		
 		else
@@ -627,7 +394,7 @@ void cpu_exec(Sys8086* sys)
 	{
 		if ((sys->cpu.flag.whole & FLAG_CARRY) == 0)
 		{
-			ip_increase = (int8_t)sys->memory[cur_inst + 1] + 2;
+				jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
 		}
 
 		else
@@ -640,7 +407,7 @@ void cpu_exec(Sys8086* sys)
 	{
 		if (sys->cpu.flag.whole & FLAG_CARRY)
 		{
-			ip_increase = (int8_t)sys->memory[cur_inst + 1] + 2;
+				jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
 		}
 
 		else
@@ -654,7 +421,7 @@ void cpu_exec(Sys8086* sys)
 	{
 		if (sys->cpu.flag.whole & FLAG_CARRY || sys->cpu.flag.whole & FLAG_ZERO)
 		{
-			ip_increase = (int8_t)sys->memory[cur_inst + 1] + 2;
+				jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
 		}
 
 		else
@@ -667,7 +434,7 @@ void cpu_exec(Sys8086* sys)
 	{
 		if (sys->cpu.cx.whole == 0)
 		{
-			ip_increase = (int8_t)sys->memory[cur_inst + 1] + 2;
+				jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
 		}
 
 		else
@@ -681,7 +448,7 @@ void cpu_exec(Sys8086* sys)
 	{
 		if (sys->cpu.flag.whole & FLAG_ZERO)
 		{
-			ip_increase = (int8_t)sys->memory[cur_inst + 1] + 2;
+				jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
 		}
 
 		else
@@ -695,7 +462,7 @@ void cpu_exec(Sys8086* sys)
 	{
 		if ((sys->cpu.flag.whole & FLAG_ZERO) == 0 && (sys->cpu.flag.whole & FLAG_SIGN) == (sys->cpu.flag.whole & FLAG_OVERFLOW))
 		{
-			ip_increase = (int8_t)sys->memory[cur_inst + 1] + 2;
+				jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
 		}
 
 		else
@@ -709,7 +476,7 @@ void cpu_exec(Sys8086* sys)
 	{
 		if ((sys->cpu.flag.whole & FLAG_SIGN) == (sys->cpu.flag.whole & FLAG_OVERFLOW))
 		{
-			ip_increase = (int8_t)sys->memory[cur_inst + 1] + 2;
+				jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
 		}
 
 		else
@@ -723,7 +490,7 @@ void cpu_exec(Sys8086* sys)
 	{
 		if ((sys->cpu.flag.whole & FLAG_SIGN) != (sys->cpu.flag.whole & FLAG_OVERFLOW))
 		{
-			ip_increase = (int8_t)sys->memory[cur_inst + 1] + 2;
+				jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
 		}
 
 		else
@@ -737,7 +504,7 @@ void cpu_exec(Sys8086* sys)
 	{
 		if (sys->cpu.flag.whole & FLAG_ZERO || (sys->cpu.flag.whole & FLAG_SIGN) != (sys->cpu.flag.whole & FLAG_OVERFLOW))
 		{
-			ip_increase = (int8_t)sys->memory[cur_inst + 1] + 2;
+				jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
 		}
 
 		else
@@ -750,7 +517,7 @@ void cpu_exec(Sys8086* sys)
 	{
 		if ((sys->cpu.flag.whole & FLAG_ZERO) == 0)
 		{
-			ip_increase = (int8_t)sys->memory[cur_inst + 1] + 2;
+				jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
 		}
 
 		else
@@ -764,7 +531,7 @@ void cpu_exec(Sys8086* sys)
 	{
 		if ((sys->cpu.flag.whole & FLAG_OVERFLOW) == 0)
 		{
-			ip_increase = (int8_t)sys->memory[cur_inst + 1] + 2;
+				jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
 		}
 
 		else
@@ -778,7 +545,7 @@ void cpu_exec(Sys8086* sys)
 	{
 		if ((sys->cpu.flag.whole & FLAG_PARITY) == 0)
 		{
-			ip_increase = (int8_t)sys->memory[cur_inst + 1] + 2;
+				jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
 		}
 
 		else
@@ -792,7 +559,7 @@ void cpu_exec(Sys8086* sys)
 	{
 		if ((sys->cpu.flag.whole & FLAG_SIGN) == 0)
 		{
-			ip_increase = (int8_t)sys->memory[cur_inst + 1] + 2;
+				jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
 		}
 
 		else
@@ -806,7 +573,7 @@ void cpu_exec(Sys8086* sys)
 	{
 		if (sys->cpu.flag.whole & FLAG_OVERFLOW)
 		{
-			ip_increase = (int8_t)sys->memory[cur_inst + 1] + 2;
+				jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
 		}
 
 		else
@@ -820,7 +587,7 @@ void cpu_exec(Sys8086* sys)
 	{
 		if (sys->cpu.flag.whole & FLAG_OVERFLOW)
 		{
-			ip_increase = (int8_t)sys->memory[cur_inst + 1] + 2;
+				jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
 		}
 
 		else
@@ -834,7 +601,7 @@ void cpu_exec(Sys8086* sys)
 	{
 		if (sys->cpu.flag.whole & FLAG_SIGN)
 		{
-			ip_increase = (int8_t)sys->memory[cur_inst + 1] + 2;
+				jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
 		}
 
 		else
@@ -846,107 +613,87 @@ void cpu_exec(Sys8086* sys)
 	}
 	case JMP_REL8: // EB ii
 	{
-		ip_increase = (int8_t)sys->memory[cur_inst + 1] + 2;
+			int8_t jmp_value = read_address8(sys, cur_inst + 1, 0) + 2;
+			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + jmp_value);
 		break;
 	}
 	case JMP_REL16: // E9 ii ii
 	{
-		int16_t* jmp_value = &sys->memory[cur_inst + 1];
-
-		ip_increase = *jmp_value + 3;
+			int16_t jmp_value = read_address16(sys, cur_inst + 1, 0) + 3;
+			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + jmp_value);
 		break;
 	}
 	case JMP_PTR16_16: // EA ii ii ii ii
 	{
-		uint16_t* new_ip = &sys->memory[cur_inst + 1];
-		uint16_t* new_cs = &sys->memory[cur_inst + 3];
+			uint16_t new_ip = read_address16(sys, cur_inst + 1, 0);
+			uint16_t new_cs = read_address16(sys, cur_inst + 3, 0);
 
-		sys->cpu.ip.whole = *new_ip;
-		sys->cpu.cs.whole = *new_cs;
-
+			jmp(sys, new_cs, new_ip);
 		break;
 	}
 	case MOV_RM8_R8: // 88 mm dd dd
 	{
 		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-		*(uint8_t*)regmem = *(uint8_t*)reg;
-
+			mov8(regmem, reg);
 		break;
 	}
 	case MOV_RM16_R16: // 89 mm dd dd
 	{
 		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-		*(uint16_t*)regmem = *(uint16_t*)reg;
-
+			mov16(regmem, reg);
 		break;
 	}
 	case MOV_R8_RM8: // 8A mm dd dd
 	{
 		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-
-		*(uint8_t*)reg = *(uint8_t*)regmem;
-
+			mov8(reg, regmem);
 		break;
 	}
 	case MOV_R16_RM16: // 8B mm dd dd
 	{
 		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
-		*(uint16_t*)reg = *(uint16_t*)regmem;
-
+			mov16(reg, regmem);
 		break;
 	}
 	case MOV_RM16_SREG: // 8C mm dd dd
 	{
 		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 1);
-
-		*(uint16_t*)regmem = *(uint16_t*)reg;
-
+			mov16(regmem, reg);
 		break;
 	}
 	case MOV_SREG_RM16: // 8E mm dd dd
 	{
 		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 1);
-
-		*(uint16_t*)reg = *(uint16_t*)regmem;
-
+			mov16(reg, regmem);
 		break;
 	}
 	case MOV_AL_MOFFS8: // A0 dd dd
 	{
-		uint16_t* moffs8 = &sys->memory[cur_inst + 1];
-
-		sys->cpu.ax.low = sys->memory[seg_mem(data_seg->whole, *moffs8)];
-
+			uint16_t moffs8 = read_address16(sys, cur_inst + 1, 0);
+			uint8_t moffs8_value = read_address8(sys, seg_mem(data_seg, moffs8), 0);
+			mov8(&sys->cpu.ax.low, &moffs8_value);
 		ip_increase = 3;
 		break;
 	}
 	case MOV_AX_MOFFS16: // A1 dd dd
 	{
-		uint16_t* moffs16 = &sys->memory[cur_inst + 1];
-		uint16_t* moffs16_real = &sys->memory[seg_mem(data_seg->whole, *moffs16)];
-
-		sys->cpu.ax.whole = *moffs16_real;
-
+			uint16_t moffs16 = read_address16(sys, cur_inst + 1, 0);
+			uint8_t moffs16_value = read_address8(sys, seg_mem(data_seg, moffs16), 0);
+			mov16(&sys->cpu.ax.whole, &moffs16_value);
 		ip_increase = 3;
 		break;
 	}
 	case MOV_MOFFS8_AL: // A2 dd dd
 	{
-		uint16_t* moffs8 = &sys->memory[cur_inst + 1];
-
-		sys->memory[seg_mem(data_seg->whole, *moffs8)] = sys->cpu.ax.low;
-
+			uint16_t moffs8 = read_address16(sys, cur_inst + 1, 0);
+			write_address8(sys, seg_mem(data_seg, moffs8), sys->cpu.ax.low, 0);
 		ip_increase = 3;
 		break;
 	}
 	case MOV_MOFFS16_AX: // A2 dd dd
 	{
-		uint16_t* moffs16 = &sys->memory[cur_inst + 1];
-		uint16_t* moffs16_real = &sys->memory[seg_mem(data_seg->whole, *moffs16)];
-
-		*moffs16_real = sys->cpu.ax.whole;
-
+			uint16_t moffs16 = read_address16(sys, cur_inst + 1, 0);
+			write_address16(sys, seg_mem(data_seg, moffs16), sys->cpu.ax.whole, 0);
 		ip_increase = 3;
 		break;
 	}
@@ -964,7 +711,8 @@ void cpu_exec(Sys8086* sys)
 
 		reg = reg8_index(&sys->cpu, reg_code);
 
-		*(uint8_t*)reg = sys->memory[cur_inst + 1];
+			uint8_t imm8 = read_address8(sys, cur_inst + 1, 0);
+			mov8(reg, &imm8);
 
 		ip_increase = 2;
 		break;
@@ -982,11 +730,11 @@ void cpu_exec(Sys8086* sys)
 
 		reg = reg16_index(&sys->cpu, reg_code);
 
-		uint16_t* imm16 = &sys->memory[cur_inst + 1];
-		*(uint16_t*)reg = *imm16;
+			uint16_t imm16 = read_address16(sys, cur_inst + 1, 0);
+
+			mov16(reg, &imm16);
 
 		ip_increase = 3;
-
 		break;
 	}
 	case MOV_RM8_IMM8: // C6 mm dd dd ii
@@ -995,8 +743,7 @@ void cpu_exec(Sys8086* sys)
 
 		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm8, 0, 0, 0);
 
-		*(uint8_t*)regmem = imm8;
-		
+			mov8(regmem, &imm8);
 		break;
 	}
 	case MOV_RM16_IMM16: // C7 mm dd dd ii ii
@@ -1005,7 +752,7 @@ void cpu_exec(Sys8086* sys)
 
 		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm16, 1, 1, 0);
 
-		*(uint16_t*)regmem = imm16;		
+			mov16(regmem, &imm16);
 
 		break;
 	}
@@ -1019,28 +766,22 @@ void cpu_exec(Sys8086* sys)
 	case PUSH_R16 + 6:
 	case PUSH_R16 + 7:
 	{
-		sys->cpu.sp.whole -= 2;
-
 		int reg_code = opcode - PUSH_R16;
 
 		reg = reg16_index(&sys->cpu, reg_code);
 
-		uint16_t* stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
-
-		*stack = *(uint16_t*)reg;
+			push(sys, *(uint16_t*)reg);
 
 		ip_increase = 1;
 		break;
 	}
-	// 0x06
+		// 06
 	case PUSH_SREG: // es
 	case PUSH_SREG + 0x8: // cs
 	case PUSH_SREG + 0x10: // ss
 	case PUSH_SREG + 0x18: // ds
 	{
 		sys->cpu.sp.whole -= 2;
-
-		uint16_t* stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
 
 		Register* sreg = NULL;
 
@@ -1064,7 +805,7 @@ void cpu_exec(Sys8086* sys)
 			sreg = &sys->cpu.es.whole;
 		}
 
-		*stack = sreg->whole;
+			push(sys, sreg->whole);
 
 		ip_increase = 1;
 		break;
@@ -1072,12 +813,7 @@ void cpu_exec(Sys8086* sys)
 	case POP_RM16: // 8F mm dd dd
 	{
 		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-		uint16_t* stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
-
-		*(uint16_t*)regmem = *stack;
-
-		sys->cpu.sp.whole += 2;
-
+			push(sys, *(uint16_t*)regmem);
 		break;
 	}
 	case POP_R16: // 58 + i
@@ -1093,23 +829,18 @@ void cpu_exec(Sys8086* sys)
 
 		reg = reg16_index(&sys->cpu, reg_code);
 
-		uint16_t* stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
+			pop(sys, *(uint16_t*)reg);
 
-		*(uint16_t*)reg = *stack;
-
-		sys->cpu.sp.whole += 2;
 		ip_increase = 1;
 		break;
 	}
-	// 0x07
+		// 07
 	case POP_SREG: // es
 	case POP_SREG + 0x8: // cs
 	case POP_SREG + 0x10: // ss
 	case POP_SREG + 0x18: // ds
 	{
-		uint16_t* stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
-
-		Register* sreg = NULL;
+			uint16_t* sreg = NULL;
 
 		if ((opcode - 0x8) == POP_SREG)
 		{
@@ -1131,34 +862,20 @@ void cpu_exec(Sys8086* sys)
 			sreg = &sys->cpu.es.whole;
 		}
 
-		sreg->whole = *stack;
+			pop(sys, sreg);
 
-		sys->cpu.sp.whole += 2;
 		ip_increase = 1;
 		break;
 	}
 	case RET_FAR: // CB
 	{
-		uint16_t* stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
-
-		sys->cpu.ip.whole = *stack;
-
-		sys->cpu.sp.whole += 2;
-
-		sys->cpu.cs.whole = *stack;
-
-		sys->cpu.sp.whole += 2;
-
+			pop(sys, &sys->cpu.ip);
+			pop(sys, &sys->cpu.cs);
 		break;
 	}
 	case RET_NEAR: // C3
 	{
-		uint16_t* stack = &sys->memory[seg_mem(sys->cpu.ss.whole, sys->cpu.sp.whole)];
-
-		sys->cpu.ip.whole = *stack;
-
-		sys->cpu.sp.whole += 2;
-
+			pop(sys, &sys->cpu.ip);
 		break;
 	}
 	default:
