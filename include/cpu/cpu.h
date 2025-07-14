@@ -30,7 +30,13 @@
 #define PREFIX_DS 0x3E
 
 // Affects flag register
+#define ADD_RM8_IMM8 0x0 // Opcode group 80
+#define ADD_RM16_IMM16 0x0 // Opcode group 81
+#define ADD_RM16_IMM8 0x0 // Opcode group 83
 #define ADD_RM8_R8 0x00
+#define ADD_RM16_R16 0x01
+#define	ADD_R8_RM8 0x02
+#define ADD_R16_RM16 0x03
 #define ADD_AL_IMM8 0x04
 #define ADD_AX_IMM16 0x05
 
