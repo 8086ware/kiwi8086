@@ -6,14 +6,80 @@ mov, push, jmp, sub, add, etc*/
 #include "memory.h"
 #include "cpu/cpu.h"
 
-void mov8(uint8_t* dest, uint8_t* src)
+void mov8(Sys8086* sys, uint8_t* dest, uint8_t* src)
 {
-	*dest = *src;
+	_Bool dest_in_mem = 0;
+	_Bool src_in_mem = 0;
+
+	int address_dest = 0;
+	int address_src = 0;
+
+	if(dest >= sys->memory && sys->memory + MAX_MEMORY_8086 >= dest)
+	{
+		address_dest = dest - sys->memory;
+		dest_in_mem = 1;
+	}
+
+	if(src >= sys->memory && sys->memory + MAX_MEMORY_8086 >= src)
+	{
+		address_src = src - sys->memory;
+		src_in_mem = 1;
+	}
+
+	uint8_t final_src = *src;
+
+	if(src_in_mem)
+	{
+		final_src = read_address8(sys, address_src, 0);
+	}
+
+	if(dest_in_mem)
+	{
+		write_address8(sys, address_dest, final_src, 0);
+	}
+
+	else
+	{
+		*dest = final_src;
+	}
 }
 
-void mov16(uint16_t* dest, uint16_t* src)
+void mov16(Sys8086* sys, uint16_t* dest, uint16_t* src)
 {
-	*dest = *src;
+	_Bool dest_in_mem = 0;
+	_Bool src_in_mem = 0;
+
+	int address_dest = 0;
+	int address_src = 0;
+
+	if(dest >= (uint16_t*)sys->memory && (uint16_t*)sys->memory + MAX_MEMORY_8086 >= dest)
+	{
+		address_dest = dest - (uint16_t*)sys->memory;
+		dest_in_mem = 1;
+	}
+
+	if(src >= (uint16_t*)sys->memory && (uint16_t*)sys->memory + MAX_MEMORY_8086 >= src)
+	{
+		address_src = src - (uint16_t*)sys->memory;
+		src_in_mem = 1;
+	}
+
+	uint16_t final_src = *src;
+
+	if(src_in_mem)
+	{
+		final_src = read_address16(sys, address_src, 0);
+	}
+
+	if(dest_in_mem)
+	{
+		write_address16(sys, address_dest, final_src, 0);
+	}
+
+	else
+	{
+		*dest = final_src;
+	}
 }
 
 void push(Sys8086* sys, uint16_t value)
