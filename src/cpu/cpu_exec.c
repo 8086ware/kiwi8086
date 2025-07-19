@@ -681,44 +681,44 @@ void cpu_exec(Sys8086* sys)
 		case MOV_RM8_R8: // 88 mm dd dd
 		{
 			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-			mov8(regmem, reg);
+			mov8(sys, regmem, reg);
 			break;
 		}
 		case MOV_RM16_R16: // 89 mm dd dd
 		{
 			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-			mov16(regmem, reg);
+			mov16(sys, regmem, reg);
 			break;
 		}
 		case MOV_R8_RM8: // 8A mm dd dd
 		{
 			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-			mov8(reg, regmem);
+			mov8(sys, reg, regmem);
 			break;
 		}
 		case MOV_R16_RM16: // 8B mm dd dd
 		{
 			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-			mov16(reg, regmem);
+			mov16(sys, reg, regmem);
 			break;
 		}
 		case MOV_RM16_SREG: // 8C mm dd dd
 		{
 			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 1);
-			mov16(regmem, reg);
+			mov16(sys, regmem, reg);
 			break;
 		}
 		case MOV_SREG_RM16: // 8E mm dd dd
 		{
 			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 1);
-			mov16(reg, regmem);
+			mov16(sys, reg, regmem);
 			break;
 		}
 		case MOV_AL_MOFFS8: // A0 dd dd
 		{
 			uint16_t moffs8 = read_address16(sys, cur_inst + 1, 0);
 			uint8_t moffs8_value = read_address8(sys, seg_mem(data_seg, moffs8), 0);
-			mov8(&sys->cpu.ax.low, &moffs8_value);
+			mov8(sys, &sys->cpu.ax.low, &moffs8_value);
 			ip_increase = 3;
 			break;
 		}
@@ -726,7 +726,7 @@ void cpu_exec(Sys8086* sys)
 		{
 			uint16_t moffs16 = read_address16(sys, cur_inst + 1, 0);
 			uint8_t moffs16_value = read_address8(sys, seg_mem(data_seg, moffs16), 0);
-			mov16(&sys->cpu.ax.whole, &moffs16_value);
+			mov16(sys, &sys->cpu.ax.whole, &moffs16_value);
 			ip_increase = 3;
 			break;
 		}
@@ -759,7 +759,7 @@ void cpu_exec(Sys8086* sys)
 			reg = reg8_index(&sys->cpu, reg_code);
 
 			uint8_t imm8 = read_address8(sys, cur_inst + 1, 0);
-			mov8(reg, &imm8);
+			mov8(sys, reg, &imm8);
 
 			ip_increase = 2;
 			break;
@@ -779,7 +779,7 @@ void cpu_exec(Sys8086* sys)
 
 			uint16_t imm16 = read_address16(sys, cur_inst + 1, 0);
 
-			mov16(reg, &imm16);
+			mov16(sys, reg, &imm16);
 
 			ip_increase = 3;
 			break;
@@ -790,7 +790,7 @@ void cpu_exec(Sys8086* sys)
 
 			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm8, 0, 0, 0);
 
-			mov8(regmem, &imm8);
+			mov8(sys, regmem, &imm8);
 			break;
 		}
 		case MOV_RM16_IMM16: // C7 mm dd dd ii ii
@@ -799,7 +799,7 @@ void cpu_exec(Sys8086* sys)
 
 			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm16, 1, 1, 0);
 
-			mov16(regmem, &imm16);
+			mov16(sys, regmem, &imm16);
 
 			break;
 		}
