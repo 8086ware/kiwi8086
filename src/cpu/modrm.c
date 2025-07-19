@@ -14,9 +14,9 @@ uint8_t calc_modrm_byte(Sys8086* sys, Register* data_seg, int instruction_addres
 
 	// modrm == 0b10'000'000
 
-	uint8_t mod_val = (modrm & 0b11'000'000) >> 6;
-	uint8_t reg_val = (modrm & 0b00'111'000) >> 3;
-	uint8_t rm_val = modrm & 0b00'000'111;
+	uint8_t mod_val = (modrm & 0b11000000) >> 6;
+	uint8_t reg_val = (modrm & 0b00111000) >> 3;
+	uint8_t rm_val = modrm & 0b00000111;
 
 	int imm_position = 0;
 	int displacement_position = 0;

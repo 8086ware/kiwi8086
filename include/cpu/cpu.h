@@ -3,12 +3,12 @@
 
 #include <stdint.h>
 
-#define FLAG_CARRY      0b0000'0000'0000'0001
-#define FLAG_PARITY     0b0000'0000'0000'0100
-#define FLAG_HALF_CARRY 0b0000'0000'0001'0000
-#define FLAG_ZERO       0b0000'0000'0100'0000
-#define FLAG_SIGN       0b0000'0000'1000'0000
-#define FLAG_OVERFLOW   0b0000'1000'0000'0000
+#define FLAG_CARRY      0b0000000000000001
+#define FLAG_PARITY     0b0000000000000100
+#define FLAG_HALF_CARRY 0b0000000000010000
+#define FLAG_ZERO       0b0000000001000000
+#define FLAG_SIGN       0b0000000010000000
+#define FLAG_OVERFLOW   0b0000100000000000
 
 //IMM8/16 = An value given, a constant
 //R/M/8/16 = Either a register or memory place that has a 16/8 bit value

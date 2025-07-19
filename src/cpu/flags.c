@@ -9,13 +9,13 @@ void cpu_modify_flag_carry(CPU* cpu, uint16_t old_val, uint16_t new_val, _Bool w
 	{
 		for (int i = 0; i <= 16; i++)
 		{
-			if (((old_val << i) & 0b1000'0000'0000'0000) == 0b1000'0000'0000'0000)
+			if (((old_val << i) & 0b1000000000000000) == 0b1000000000000000)
 			{
 				cpu->flag.whole &= ~FLAG_CARRY;
 				break;
 			}
 
-			if (((new_val << i) & 0b1000'0000'0000'0000) == 0b1000'0000'0000'0000)
+			if (((new_val << i) & 0b1000000000000000) == 0b1000000000000000)
 			{
 				cpu->flag.whole |= FLAG_CARRY;
 				break;
@@ -27,13 +27,13 @@ void cpu_modify_flag_carry(CPU* cpu, uint16_t old_val, uint16_t new_val, _Bool w
 	{
 		for (int i = 0; i <= 8; i++)
 		{
-			if (((old_val8 << i) & 0b1000'0000) == 0b1000'0000)
+			if (((old_val8 << i) & 0b10000000) == 0b10000000)
 			{
 				cpu->flag.whole &= ~FLAG_CARRY;
 				break;
 			}
 
-			if (((new_val8 << i) & 0b1000'0000) == 0b1000'0000)
+			if (((new_val8 << i) & 0b10000000) == 0b10000000)
 			{
 				cpu->flag.whole |= FLAG_CARRY;
 				break;
@@ -50,7 +50,7 @@ void cpu_modify_flag_parity(CPU* cpu, uint8_t val)
 
 	for (int i = 0; i <= 8; i++)
 	{
-		if (((val << i) & 0b1000'0000) == 0b1000'0000)
+		if (((val << i) & 0b10000000) == 0b10000000)
 		{
 			bit_amount++;
 		}
@@ -71,12 +71,12 @@ void cpu_modify_flag_parity(CPU* cpu, uint8_t val)
 
 void cpu_modify_flag_half_carry(CPU* cpu, uint8_t old_val, uint8_t new_val)
 {
-	if ((old_val & 0b0000'1000) == 0b0000'1000)
+	if ((old_val & 0b00001000) == 0b00001000)
 	{
 		cpu->flag.whole &= ~FLAG_HALF_CARRY;
 	}
 
-	else if ((new_val & 0b0000'1000) == 0b0000'1000)
+	else if ((new_val & 0b00001000) == 0b00001000)
 	{
 		cpu->flag.whole |= FLAG_HALF_CARRY;
 	}
@@ -103,7 +103,7 @@ void cpu_modify_flag_sign(CPU* cpu, uint16_t val, _Bool word)
 
 	if (word)
 	{
-		if ((val & 0b1000'0000'0000'0000) == 0b1000'0000'0000'0000)
+		if ((val & 0b1000000000000000) == 0b1000000000000000)
 		{
 			cpu->flag.whole |= FLAG_SIGN;
 		}
@@ -116,7 +116,7 @@ void cpu_modify_flag_sign(CPU* cpu, uint16_t val, _Bool word)
 
 	else
 	{
-		if ((val8 & 0b1000'0000) == 0b1000'0000)
+		if ((val8 & 0b10000000) == 0b10000000)
 		{
 			cpu->flag.whole |= FLAG_SIGN;
 		}
@@ -137,9 +137,9 @@ void cpu_modify_flag_overflow(CPU* cpu, int16_t op1, int16_t op2, int16_t result
 
 	if (word)
 	{
-		op1_neg = op1 & 0b1000'0000'0000'0000;
-		op2_neg = op2 & 0b1000'0000'0000'0000;
-		result_neg = result & 0b1000'0000'0000'0000;
+		op1_neg = op1 & 0b1000000000000000;
+		op2_neg = op2 & 0b1000000000000000;
+		result_neg = result & 0b1000000000000000;
 	}
 
 	else
@@ -148,9 +148,9 @@ void cpu_modify_flag_overflow(CPU* cpu, int16_t op1, int16_t op2, int16_t result
 		int8_t op2_8 = op2;
 		int8_t result_8 = result;
 
-		op1_neg = op1_8 & 0b1000'0000;
-		op2_neg = op2_8 & 0b1000'0000;
-		result_neg = result_8 & 0b1000'0000;
+		op1_neg = op1_8 & 0b10000000;
+		op2_neg = op2_8 & 0b10000000;
+		result_neg = result_8 & 0b10000000;
 	}
 
 	// -127 to 127 (example)
