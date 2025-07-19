@@ -12,7 +12,7 @@
 
 //IMM8/16 = An value given, a constant
 //R/M/8/16 = Either a register or memory place that has a 16/8 bit value
-//MOFFS16/8 = A memory place that has an 16/8bit value
+//MOFFS16/8 = A memory place that has an 16/8bit value (in current data segment)
 //REG8/16 = A 16/8 bit register
 //PTR16 = 16 bit segment (far jump/call)
 
