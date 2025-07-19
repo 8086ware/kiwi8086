@@ -409,7 +409,9 @@ void cpu_exec(Sys8086* sys)
 
 			push(sys, sys->cpu.flag.whole);
 			push(sys, sys->cpu.cs.whole);
-			push(sys, sys->cpu.ip.whole);
+			push(sys, sys->cpu.ip.whole + 2);
+
+			jmp(sys, interrupt_segment, interrupt_offset);
 
 			break;
 		}
@@ -830,29 +832,27 @@ void cpu_exec(Sys8086* sys)
 		{
 			sys->cpu.sp.whole -= 2;
 
-			Register* sreg = NULL;
-
 			if ((opcode - 0x8) == POP_SREG)
 			{
-				sreg = &sys->cpu.cs.whole;
+				reg = &sys->cpu.cs.whole;
 			}
 
 			else if ((opcode - 0x10) == POP_SREG)
 			{
-				sreg = &sys->cpu.ss.whole;
+				reg = &sys->cpu.ss.whole;
 			}
 
 			else if ((opcode - 0x18) == POP_SREG)
 			{
-				sreg = &sys->cpu.ds.whole;
+				reg = &sys->cpu.ds.whole;
 			}
 
 			else
 			{
-				sreg = &sys->cpu.es.whole;
+				reg = &sys->cpu.es.whole;
 			}
 
-			push(sys, sreg->whole);
+			push(sys, *(uint16_t*)reg);
 
 			ip_increase = 1;
 			break;
@@ -887,29 +887,27 @@ void cpu_exec(Sys8086* sys)
 		case POP_SREG + 0x10: // ss
 		case POP_SREG + 0x18: // ds
 		{
-			uint16_t* sreg = NULL;
-
 			if ((opcode - 0x8) == POP_SREG)
 			{
-				sreg = &sys->cpu.cs.whole;
+				reg = &sys->cpu.cs.whole;
 			}
 
 			else if ((opcode - 0x10) == POP_SREG)
 			{
-				sreg = &sys->cpu.ss.whole;
+				reg = &sys->cpu.ss.whole;
 			}
 
 			else if ((opcode - 0x18) == POP_SREG)
 			{
-				sreg = &sys->cpu.ds.whole;
+				reg = &sys->cpu.ds.whole;
 			}
 
 			else
 			{
-				sreg = &sys->cpu.es.whole;
+				reg = &sys->cpu.es.whole;
 			}
 
-			pop(sys, sreg);
+			pop(sys, *(uint16_t*)reg);
 
 			ip_increase = 1;
 			break;
