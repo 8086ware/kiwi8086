@@ -1,16 +1,30 @@
 #include "memory.h"
 #include <stdint.h>
 #include "system.h"
+#include "8259pic.h"
 
 void write_address8(Sys8086* sys, uint32_t address, uint8_t value, _Bool port)
 {
+	if (address >= MAX_MEMORY_8086)
+	{
+		return;
+	}
+
 	if (port) // port address space (devices)
 	{
-		
+		switch(address)
+		{
+			
+		}
 	}
 
 	else // normal address space (physical ram)
 	{
+		if(address >= 0xB0000 && address <= 0xB0000 + (80 * 25 * 2))
+		{
+			sys->display.ram[address - 0xB0000] = value;
+		}
+
 		switch (address)
 		{
 		default:
@@ -27,34 +41,46 @@ void write_address16(Sys8086* sys, uint32_t address, uint16_t value, _Bool port)
 	write_address8(sys, address + 1, value & 0xff00, port);
 }
 
-	if (port) // port address space (devices)
+uint8_t read_address8(Sys8086* sys, uint32_t address, _Bool port)
+{
+	if (address >= MAX_MEMORY_8086)
 	{
-
+		return;
 	}
 
-	else // normal address space (physical ram)
+	if (port) // port address space (devices)
 	{
 		switch (address)
 		{
-		default:
+		// For pic ports, return the interrupt mask register if no command byte
+		case PIC_MASTER_DATA:
 		{
-			*valueptr = value;
-
-			break;
+			if (!sys->pic_master.command)
+			{
+				return sys->pic_master.imr;
+			}
+		}
+		case PIC_SLAVE_DATA:
+		{
+			if (!sys->pic_slave.command)
+			{
+				return sys->pic_slave.imr;
+			}
+		}
+		case MDA_STATUS_REGISTER:
+		{
+			return sys->display.status_reg;
 		}
 		}
-	}
-}
-
-uint8_t read_address8(Sys8086* sys, uint32_t address, _Bool port)
-{
-	if (port) // port address space (devices)
-	{
-
 	}
 
 	else // normal address space (physical ram)
 	{
+		if(address >= 0xB0000 && address <= 0xB0000 + (80 * 25 * 2))
+		{
+			return sys->display.ram[address - 0xB0000];
+		}
+
 		switch (address)
 		{
 		default:
