@@ -4,14 +4,14 @@
 #include <stdint.h>
 #include "cpu/cpu.h"
 #include <stdio.h>
-#include "vga.h"
+#include "display/mda.h"
 #include "8259pic.h"
 
-#define MAX_MEMORY_8086 1'048'576
+#define MAX_MEMORY_8086 1048576
 // Things to emulate:
 // 8086 CPU
 // 1 Megabyte memory
-// VGA Display
+// MDA Display
 // I8042 PS/2 Controller
 // 8259 Programmable Interrupt Controller
 // 8271 Floppy disk controller
@@ -20,7 +20,7 @@
 
 typedef struct Sys8086
 {
-	VGA display;
+	MDA display;
 	uint8_t* memory;
 	CPU cpu;
 	pic8259 pic_master;
