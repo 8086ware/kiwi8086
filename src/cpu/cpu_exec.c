@@ -907,7 +907,7 @@ void cpu_exec(Sys8086* sys)
 		case MOV_AL_MOFFS8: // A0 dd dd
 		{
 			uint16_t moffs8 = read_address16(sys, cur_inst + 1, 0);
-			uint8_t moffs8_value = read_address8(sys, seg_mem(data_seg, moffs8), 0);
+			uint8_t moffs8_value = read_address8(sys, seg_mem(data_seg->whole, moffs8), 0);
 			mov8(sys, &sys->cpu.ax.low, &moffs8_value);
 			ip_increase = 3;
 			break;
@@ -915,7 +915,7 @@ void cpu_exec(Sys8086* sys)
 		case MOV_AX_MOFFS16: // A1 dd dd
 		{
 			uint16_t moffs16 = read_address16(sys, cur_inst + 1, 0);
-			uint8_t moffs16_value = read_address8(sys, seg_mem(data_seg, moffs16), 0);
+			uint8_t moffs16_value = read_address8(sys, seg_mem(data_seg->whole, moffs16), 0);
 			mov16(sys, &sys->cpu.ax.whole, &moffs16_value);
 			ip_increase = 3;
 			break;
@@ -923,14 +923,14 @@ void cpu_exec(Sys8086* sys)
 		case MOV_MOFFS8_AL: // A2 dd dd
 		{
 			uint16_t moffs8 = read_address16(sys, cur_inst + 1, 0);
-			write_address8(sys, seg_mem(data_seg, moffs8), sys->cpu.ax.low, 0);
+			write_address8(sys, seg_mem(data_seg->whole, moffs8), sys->cpu.ax.low, 0);
 			ip_increase = 3;
 			break;
 		}
 		case MOV_MOFFS16_AX: // A2 dd dd
 		{
 			uint16_t moffs16 = read_address16(sys, cur_inst + 1, 0);
-			write_address16(sys, seg_mem(data_seg, moffs16), sys->cpu.ax.whole, 0);
+			write_address16(sys, seg_mem(data_seg->whole, moffs16), sys->cpu.ax.whole, 0);
 			ip_increase = 3;
 			break;
 		}
