@@ -47,8 +47,7 @@ Sys8086* init_sys(FILE* image, FILE* bios_rom)
 		sys->memory[i] = 0;
 	}
 
-	sys->cpu.flag.whole = 0;
-
+	// init pic
 	sys->pic_master.vector_offset = 0x08;
 	sys->pic_slave.vector_offset = 0x70;
 
@@ -59,6 +58,8 @@ Sys8086* init_sys(FILE* image, FILE* bios_rom)
 	sys->pic_slave.imr = 0;
 
 	sys->cpu.halted = 0;
+
+	sys->cpu.flag.whole = 0;
 
 	if(bios_rom != NULL)
 	{
