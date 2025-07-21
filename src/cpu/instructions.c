@@ -243,6 +243,34 @@ void add16(Sys8086* sys, uint16_t* to, uint16_t added)
 	cpu_modify_flag_overflow(&sys->cpu, old_val, -added, *to, 1);
 }
 
+void sub8(Sys8086* sys, uint8_t* to, uint8_t subbed)
+{
+	uint8_t old_val = *to;
+
+	(*to) -= subbed;
+
+	cpu_modify_flag_carry(&sys->cpu, old_val, *to, 0);
+	cpu_modify_flag_half_carry(&sys->cpu, old_val, *to);
+	cpu_modify_flag_zero(&sys->cpu, *to);
+	cpu_modify_flag_parity(&sys->cpu, *to);
+	cpu_modify_flag_sign(&sys->cpu, *to, 0);
+	cpu_modify_flag_overflow(&sys->cpu, old_val, subbed, *to, 0);
+}
+
+void sub16(Sys8086* sys, uint16_t* to, uint16_t subbed)
+{
+	uint16_t old_val = *to;
+
+	(*to) -= subbed;
+
+	cpu_modify_flag_carry(&sys->cpu, old_val, *to, 1);
+	cpu_modify_flag_half_carry(&sys->cpu, old_val, *to);
+	cpu_modify_flag_zero(&sys->cpu, *to);
+	cpu_modify_flag_parity(&sys->cpu, *to);
+	cpu_modify_flag_sign(&sys->cpu, *to, 1);
+	cpu_modify_flag_overflow(&sys->cpu, old_val, subbed, *to, 1);
+}
+
 void sal8(Sys8086* sys, int8_t* value, uint8_t amount)
 {
 	if(((*value << (amount - 1)) & 0b10000000))

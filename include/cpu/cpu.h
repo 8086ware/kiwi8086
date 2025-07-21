@@ -166,6 +166,16 @@
 #define SHR_RM16_1 0x5 // Opcode group D1
 #define SHR_RM16_CL 0x5 // Opcode group D3
 
+#define SUB_AL_IMM8 0x2C
+#define SUB_AX_IMM16 0x2D
+#define SUB_RM8_IMM8 0x5 // Opcode group 80
+#define SUB_RM16_IMM16 0x5 // Opcode group 81
+#define SUB_RM16_IMM8 0x5 // Opcode group 83
+#define SUB_RM8_R8 0x28
+#define SUB_RM16_R16 0x29
+#define SUB_R8_RM8 0x2A
+#define SUB_R16_RM16 0x2B
+
 typedef union Register
 {
 	struct

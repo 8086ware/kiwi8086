@@ -106,6 +106,14 @@ void cpu_exec(Sys8086* sys)
 				cmp8(sys, *(uint8_t*)regmem, imm);
 				break;
 			}
+			case SUB_RM8_IMM8:
+			{
+				uint8_t imm = 0;
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 0, 0, 0);
+
+				sub8(sys, regmem, imm);
+				break;
+			}
 			case OR_RM8_IMM8:
 			{
 				uint8_t imm = 0;
@@ -137,6 +145,14 @@ void cpu_exec(Sys8086* sys)
 				cmp16(sys, *(uint16_t*)regmem, imm);
 				break;
 			}
+			case SUB_RM16_IMM16:
+			{
+				uint8_t imm = 0;
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 1, 0);
+
+				sub16(sys, regmem, imm);
+				break;
+			}
 			case OR_RM16_IMM16:
 			{
 				uint8_t imm = 0;
@@ -166,6 +182,14 @@ void cpu_exec(Sys8086* sys)
 				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 0, 0);
 
 				cmp16(sys, *(uint16_t*)regmem, imm);
+				break;
+			}
+			case SUB_RM16_IMM8:
+			{				
+				uint16_t imm = 0;
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 0, 0);
+
+				sub16(sys, regmem, imm);
 				break;
 			}
 			case OR_RM16_IMM8:
@@ -1146,6 +1170,42 @@ void cpu_exec(Sys8086* sys)
 		case RET_NEAR: // C3
 		{
 			pop(sys, &sys->cpu.ip.whole);
+			break;
+		}
+		case SUB_AL_IMM8: // 2C ii
+		{
+			sub8(sys, &sys->cpu.ax.low, read_address8(sys, cur_inst + 1, 0));
+			ip_increase = 2;
+			break;
+		}
+		case SUB_AX_IMM16: // 2D ii ii
+		{
+			sub16(sys, &sys->cpu.ax.whole, read_address16(sys, cur_inst + 1, 0));
+			ip_increase = 3;
+			break;
+		}
+		case SUB_RM8_R8:
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+			sub8(sys, regmem, *(uint8_t*)reg);
+			break;
+		}
+		case SUB_RM16_R16:
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+			sub16(sys, regmem, *(uint16_t*)reg);
+			break;
+		}
+		case SUB_R8_RM8:
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+			sub8(sys, reg, *(uint8_t*)regmem);
+			break;
+		}
+		case SUB_R16_RM16:
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+			sub16(sys, reg, *(uint16_t*)regmem);
 			break;
 		}
 			break;
