@@ -1,4 +1,5 @@
 #include "system.h"
+#include "memory.h"
 
 // Returns instruction pointer advancement
 // Takes the sys, data segment that mem will offset to, the instruction address, the reg, the rm (regmem), an immediate (NULL if none), word is if regmem/reg is a word, imm_word if the imm is a word or not, sreg if reg is a segment register
