@@ -49,7 +49,7 @@ uint8_t read_address8(Sys8086* sys, uint32_t address, _Bool port)
 {
 	if (address >= MAX_MEMORY_8086)
 	{
-		return;
+		return -1;
 	}
 
 	if (port) // port address space (devices)
