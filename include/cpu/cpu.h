@@ -176,6 +176,10 @@
 #define SUB_R8_RM8 0x2A
 #define SUB_R16_RM16 0x2B
 
+#define XCHG_AX_R16 0x90
+#define XCHG_RM8_R8 0x86
+#define XCHG_RM16_R16 0x87
+
 typedef union Register
 {
 	struct

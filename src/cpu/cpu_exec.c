@@ -1208,6 +1208,45 @@ void cpu_exec(Sys8086* sys)
 			sub16(sys, reg, *(uint16_t*)regmem);
 			break;
 		}
+		case XCHG_AX_R16: // 90 + i
+		case XCHG_AX_R16 + 1:
+		case XCHG_AX_R16 + 2:
+		case XCHG_AX_R16 + 3:
+		case XCHG_AX_R16 + 4:
+		case XCHG_AX_R16 + 5:
+		case XCHG_AX_R16 + 6:
+		case XCHG_AX_R16 + 7:
+		{
+			int reg_code = opcode - XCHG_AX_R16;
+
+			reg = reg16_index(&sys->cpu, reg_code);
+
+			uint16_t temp = *(uint16_t*)reg;
+
+			mov16(sys, reg, &sys->cpu.ax.whole);
+			mov16(sys, &sys->cpu.ax.whole, &temp);
+
+			ip_increase = 1;
+			break;
+		}
+		case XCHG_RM8_R8:
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+			
+			uint8_t temp = *(uint8_t*)reg;
+
+			mov8(sys, reg, regmem);
+			mov8(sys, regmem, &temp);
+			break;
+		}
+		case XCHG_RM16_R16:
+		{	
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+			
+			uint16_t temp = *(uint16_t*)reg;
+
+			mov16(sys, reg, regmem);
+			mov16(sys, regmem, &temp);
 			break;
 		}
 		default:
