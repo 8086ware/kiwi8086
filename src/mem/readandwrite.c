@@ -42,7 +42,7 @@ void write_address8(Sys8086* sys, uint32_t address, uint8_t value, _Bool port)
 void write_address16(Sys8086* sys, uint32_t address, uint16_t value, _Bool port)
 {
 	write_address8(sys, address, value & 0x00ff, port);
-	write_address8(sys, address + 1, value & 0xff00, port);
+	write_address8(sys, address + 1, (value & 0xff00) >> 8, port);
 }
 
 uint8_t read_address8(Sys8086* sys, uint32_t address, _Bool port)
