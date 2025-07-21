@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include "system.h"
 #include "8259pic.h"
+#include <stdio.h>
 
 void write_address8(Sys8086* sys, uint32_t address, uint8_t value, _Bool port)
 {
@@ -14,7 +15,10 @@ void write_address8(Sys8086* sys, uint32_t address, uint8_t value, _Bool port)
 	{
 		switch(address)
 		{
-			
+			case 0xE9:
+			{
+				printf("-------------PORT 0xE9 HACK:%c\n", value);
+			}
 		}
 	}
 
