@@ -265,7 +265,7 @@ int font[256 * 14] = {
 int main(int argc, char** argv) {
 	if (argc < 2)
 	{
-		printf("Usage: %s [IMAGE]\n", argv[0]);
+		printf("Usage: %s [IMAGE] [BIOS]\n", argv[0]);
 		return 1;
 	}
 
@@ -277,9 +277,11 @@ int main(int argc, char** argv) {
 		return 2;
 	}
 
+	FILE* bios = fopen(argv[2], "r+b");
+
 	printf("\x1B[?1049h\x1B[2J"); // enter private console screen
 
-	Sys8086* sys = init_sys(image);
+	Sys8086* sys = init_sys(image, bios);
 
 	sys->cpu.ss.whole = 0x500;
 	sys->cpu.sp.whole = 0xffff;

@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-Sys8086* init_sys(FILE* image)
+Sys8086* init_sys(FILE* image, FILE* bios_rom)
 {
 	Sys8086* sys = malloc(sizeof(Sys8086));
 
@@ -18,11 +18,19 @@ Sys8086* init_sys(FILE* image)
 		return NULL;
 	}
 
-	sys->cpu.cs.whole = 0x0;
-	sys->cpu.ip.whole = 0x7c00;
-	
-	sys->display.columns = 80;
-	sys->display.rows = 25;
+	if(bios_rom == NULL)
+	{
+		// Starting point of first bootsector
+		sys->cpu.cs.whole = 0x0;
+		sys->cpu.ip.whole = 0x7c00;
+	}
+
+	else
+	{
+		// Starting point of a normal reset 8086
+		sys->cpu.cs.whole = 0xFFFF;
+		sys->cpu.ip.whole = 0x0;
+	}
 
 	sys->display.mem = &sys->memory[0xB8000];
 
@@ -53,6 +61,17 @@ Sys8086* init_sys(FILE* image)
 
 	sys->cpu.halted = 0;
 
+	if(bios_rom != NULL)
+	{
+
+		fseek(bios_rom, 0, SEEK_END);
+		int bios_size = ftell(bios_rom);
+		fseek(bios_rom, 0, SEEK_SET);
+
+		fread(&sys->memory[MAX_MEMORY_8086 - bios_size], sizeof(uint8_t), bios_size, bios_rom);
+	}
+
 	fread(&sys->memory[0x7c00], sizeof(uint8_t), 512, image);
+
 	return sys;
 }
