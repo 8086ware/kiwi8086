@@ -276,8 +276,13 @@ int main(int argc, char** argv) {
 		return 2;
 	}
 
+	printf("\x1B[?1049h\x1B[2J"); // enter private console screen
+
 	Sys8086* sys = init_sys(image);
 
+	sys->cpu.ss.whole = 0x500;
+	sys->cpu.sp.whole = 0xffff;
+	
 	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
 
 	SDL_Renderer* win_render = NULL;
@@ -288,7 +293,25 @@ int main(int argc, char** argv) {
 
 	while (event.type != SDL_EVENT_QUIT) // X button on window
 	{
-		printf("AX=%x, BX=%x, CX=%x, DX=%x, CS=%x, DS=%x, ES=%x, SS=%x, IP=%x, FLAGS=%x\n", sys->cpu.ax.whole, sys->cpu.bx.whole, sys->cpu.cx.whole, sys->cpu.dx.whole, sys->cpu.cs.whole, sys->cpu.ds.whole, sys->cpu.es.whole, sys->cpu.ss.whole, sys->cpu.ip.whole, sys->cpu.flag.whole);
+		printf("\x1b[HAX=%x, BX=%x, CX=%x, DX=%x, CS=%x, DS=%x, ES=%x, SS=%x, IP=%x, SP=%x, FLAGS=%x\n", sys->cpu.ax.whole, sys->cpu.bx.whole, sys->cpu.cx.whole, sys->cpu.dx.whole, sys->cpu.cs.whole, sys->cpu.ds.whole, sys->cpu.es.whole, sys->cpu.ss.whole, sys->cpu.ip.whole, sys->cpu.sp.whole, sys->cpu.flag.whole);
+		
+		printf("Memory around CS:IP: ");
+		
+		const int max_mem_print = 11;
+
+		for(int i = -(max_mem_print / 2); i < max_mem_print / 2; i++)
+		{
+			if(i == 0)
+			{
+				printf("[%x] ", sys->memory[sys->cpu.cs.whole * 0x10 + (sys->cpu.ip.whole + i)]);
+			}
+
+			else 
+			{
+				printf("%x ", sys->memory[sys->cpu.cs.whole * 0x10 + (sys->cpu.ip.whole + i)]);
+			}
+		}
+
 		cpu_exec(sys);
 
 		SDL_SetRenderDrawColor(win_render, 0, 0, 0, SDL_ALPHA_OPAQUE);
@@ -329,4 +352,6 @@ int main(int argc, char** argv) {
 	SDL_DestroyWindow(win); // frees window (including surface itself)
 
 	SDL_Quit(); // deallocates sdl memory
+	printf("\x1B[?1049l");// exit private console screen
+
 }
