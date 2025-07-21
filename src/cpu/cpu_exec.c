@@ -98,6 +98,14 @@ void cpu_exec(Sys8086* sys)
 				add8(sys, regmem, imm);
 				break;
 			}
+			case AND_RM8_IMM8:
+			{
+				uint8_t imm = 0;
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 0, 0, 0);
+
+				and8(sys, regmem, imm);
+				break;
+			}
 			case CMP_RM8_IMM8: // 80 mm ii
 			{
 				uint8_t imm = 0;
@@ -137,6 +145,14 @@ void cpu_exec(Sys8086* sys)
 				add16(sys, regmem, imm);
 				break;
 			}
+			case AND_RM16_IMM16: 
+			{
+				uint16_t imm = 0;
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 1, 0);
+
+				and16(sys, regmem, imm);
+				break;
+			}
 			case CMP_RM16_IMM16: // 81 mm ii ii
 			{
 				uint16_t imm = 0;
@@ -174,6 +190,14 @@ void cpu_exec(Sys8086* sys)
 				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 0, 0);
 
 				add16(sys, regmem, imm);
+				break;
+			}
+			case AND_RM16_IMM8:
+			{
+				uint16_t imm = 0;
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 0, 0);
+
+				and16(sys, regmem, imm);
 				break;
 			}
 			case CMP_RM16_IMM8: // 83 mm ii
@@ -458,6 +482,44 @@ void cpu_exec(Sys8086* sys)
 		{
 			add16(sys, &sys->cpu.ax.whole, read_address16(sys, cur_inst + 1, 0));
 			ip_increase = 3;
+			break;
+		}
+		case AND_AL_IMM8:
+		{
+			uint8_t imm = read_address8(sys, cur_inst + 1, 0);
+			and8(sys, &sys->cpu.ax.low, imm);
+			ip_increase = 2;
+			break;
+		}
+		case AND_AX_IMM16:
+		{
+			uint16_t imm = read_address16(sys, cur_inst + 1, 0);
+			and16(sys, &sys->cpu.ax.whole, imm);
+			ip_increase = 3;
+			break;
+		}
+		case AND_RM8_R8:
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+			and8(sys, regmem, *(uint8_t*)reg);
+			break;
+		}
+		case AND_RM16_R16:
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+			and16(sys, regmem, *(uint16_t*)reg);
+			break;
+		}
+		case AND_R8_RM8:
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+			and8(sys, reg, *(uint16_t*)regmem);
+			break;
+		}
+		case AND_R16_RM16:
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+			and16(sys, reg, *(uint16_t*)regmem);
 			break;
 		}
 		case CALL_PTR16_16: // 9A ii ii ii ii

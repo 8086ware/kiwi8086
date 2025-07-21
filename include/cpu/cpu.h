@@ -44,6 +44,16 @@
 #define ADD_AL_IMM8 0x04
 #define ADD_AX_IMM16 0x05
 
+#define AND_AL_IMM8 0x24
+#define AND_AX_IMM16 0x25
+#define AND_RM8_IMM8 0x4 // Opcode group 80
+#define AND_RM16_IMM16 0x4 // Opcode group 81
+#define AND_RM16_IMM8 0x4 // Opcode group 83
+#define AND_RM8_R8 0x20
+#define AND_RM16_R16 0x21
+#define AND_R8_RM8 0x22
+#define AND_R16_RM16 0x23
+
 #define CALL_REL16 0xE8
 #define CALL_RM16 0x2 // Opcode group FF
 #define CALL_PTR16_16 0x9A
