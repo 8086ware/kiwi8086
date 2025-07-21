@@ -32,16 +32,15 @@ Sys8086* init_sys(FILE* image, FILE* bios_rom)
 		sys->cpu.ip.whole = 0x0;
 	}
 
-	sys->display.mem = &sys->memory[0xB8000];
+	sys->display.mode_ctrl_reg = 0b00011001;
+	sys->display.status_reg = 0b00001001;
 
+	sys->display.cursor_address = 0;
 
-	for (int i = 0; i < VGA_DISPLAY_PAGES; i++)
+	for (int i = 0; i < MDA_RAM_SIZE; i++)
 	{
-		sys->display.cursor_x[i] = 0;
-		sys->display.cursor_y[i] = 0;
+		sys->display.ram[i] = 0;
 	}
-
-	sys->display.display_page = 0;
 
 	for (int i = 0; i < MAX_MEMORY_8086; i++)
 	{
