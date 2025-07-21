@@ -393,7 +393,7 @@ void cpu_exec(Sys8086* sys)
 			case INC_RM16: // FF mm dd dd
 			{
 				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-				inc16(sys, *(uint16_t*)regmem);
+				inc16(sys, regmem);
 				break;
 			}
 			}
@@ -1101,7 +1101,7 @@ void cpu_exec(Sys8086* sys)
 
 			reg = reg16_index(&sys->cpu, reg_code);
 
-			pop(sys, *(uint16_t*)reg);
+			pop(sys, reg);
 
 			ip_increase = 1;
 			break;
@@ -1132,20 +1132,22 @@ void cpu_exec(Sys8086* sys)
 				reg = &sys->cpu.es.whole;
 			}
 
-			pop(sys, *(uint16_t*)reg);
+			pop(sys, reg);
 
 			ip_increase = 1;
 			break;
 		}
 		case RET_FAR: // CB
 		{
-			pop(sys, &sys->cpu.ip);
-			pop(sys, &sys->cpu.cs);
+			pop(sys, &sys->cpu.ip.whole);
+			pop(sys, &sys->cpu.cs.whole);
 			break;
 		}
 		case RET_NEAR: // C3
 		{
-			pop(sys, &sys->cpu.ip);
+			pop(sys, &sys->cpu.ip.whole);
+			break;
+		}
 			break;
 		}
 		default:
