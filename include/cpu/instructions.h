@@ -23,4 +23,12 @@ void pop(Sys8086* sys, uint16_t* value);
 void add8(Sys8086* sys, uint8_t* to, uint8_t added);
 void add16(Sys8086* sys, uint16_t* to, uint16_t added);
 
+void sal8(Sys8086* sys, int8_t* value, uint8_t amount);
+void sar8(Sys8086* sys, int8_t* value, uint8_t amount);
+void shr8(Sys8086* sys, uint8_t* value, uint8_t amount);
+
+void sal16(Sys8086* sys, int16_t* value, uint8_t amount);
+void sar16(Sys8086* sys, int16_t* value, uint8_t amount);
+void shr16(Sys8086* sys, uint16_t* value, uint8_t amount);
+
 #endif

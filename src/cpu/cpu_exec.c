@@ -152,6 +152,117 @@ void cpu_exec(Sys8086* sys)
 				cmp16(sys, *(uint16_t*)regmem, imm);
 				break;
 			}
+		case GROUP_OPCODE_D0:
+		{
+			switch (group_opcode_instruction)
+			{
+			case SAL_RM8_1: // D0 mm
+			{
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+
+				sal8(sys, regmem, 1);
+				break;
+			}
+			case SAR_RM8_1: // D0 mm
+			{
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+
+				sar8(sys, regmem, 1);
+				break;
+			}
+			case SHR_RM8_1: // D0 mm
+			{
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+
+				shr8(sys, regmem, 1);
+				break;
+			}
+			}
+
+			break;
+		}
+		case GROUP_OPCODE_D1:
+		{
+			switch (group_opcode_instruction)
+			{
+			case SAL_RM16_1: // D0 mm
+			{
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+
+				sal16(sys, regmem, 1);
+				break;
+			}
+			case SAR_RM16_1: // D0 mm
+			{
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+
+				sar16(sys, regmem, 1);
+				break;
+			}
+			case SHR_RM16_1: // D0 mm
+			{
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+
+				shr16(sys, regmem, 1);
+				break;
+			}
+			}
+
+			break;
+		}
+		case GROUP_OPCODE_D2:
+		{			
+			switch (group_opcode_instruction)
+			{
+			case SAL_RM8_CL: // D0 mm
+			{
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+
+				sal8(sys, regmem, sys->cpu.cx.low);
+				break;
+			}
+			case SAR_RM8_CL: // D0 mm
+			{
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+
+				sar8(sys, regmem, sys->cpu.cx.low);
+				break;
+			}
+			case SHR_RM8_CL: // D0 mm
+			{
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+
+				shr8(sys, regmem, sys->cpu.cx.low);
+				break;
+			}
+			}
+			break;
+		}
+		case GROUP_OPCODE_D3:
+		{			
+			switch (group_opcode_instruction)
+			{
+			case SAL_RM16_CL: // D0 mm
+			{
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+
+				sal16(sys, regmem, sys->cpu.cx.low);
+				break;
+			}
+			case SAR_RM16_CL: // D0 mm
+			{
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+
+				sar16(sys, regmem, sys->cpu.cx.low);
+				break;
+			}
+			case SHR_RM16_CL: // D0 mm
+			{
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+
+				shr16(sys, regmem, sys->cpu.cx.low);
+				break;
+			}
 			}
 			break;
 		}

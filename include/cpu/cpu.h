@@ -135,6 +135,22 @@
 #define RET_NEAR_IMM16 0xC2
 #define RET_FAR_IMM16 0xCA
 
+// Same as SHL
+#define SAL_RM8_1 0x4 // Opcode group D0
+#define SAL_RM8_CL 0x4 // Opcode group D2
+#define SAL_RM16_1 0x4 // Opcode group D1
+#define SAL_RM16_CL 0x4 // Opcode group D3
+
+#define SAR_RM8_1 0x7 // Opcode group D0
+#define SAR_RM8_CL 0x7 // Opcode group D2
+#define SAR_RM16_1 0x7 // Opcode group D1
+#define SAR_RM16_CL 0x7 // Opcode group D3
+
+#define SHR_RM8_1 0x5 // Opcode group D0
+#define SHR_RM8_CL 0x5 // Opcode group D2
+#define SHR_RM16_1 0x5 // Opcode group D1
+#define SHR_RM16_CL 0x5 // Opcode group D3
+
 typedef union Register
 {
 	struct
