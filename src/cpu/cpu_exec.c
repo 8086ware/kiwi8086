@@ -345,6 +345,14 @@ void cpu_exec(Sys8086* sys)
 		{
 			switch (group_opcode_instruction)
 			{
+			case TEST_RM8_IMM8:
+			{
+				uint8_t imm = 0;
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 0, 0, 0);
+				uint8_t temp = *(uint8_t*)regmem;
+				and8(sys, &temp, imm);
+				break;
+			}
 			case MUL_RM8: // F6 mm
 			{
 				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
@@ -360,6 +368,14 @@ void cpu_exec(Sys8086* sys)
 		{
 			switch (group_opcode_instruction)
 			{
+			case TEST_RM16_IMM16:
+			{
+				uint16_t imm = 0;
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 1, 0);
+				uint16_t temp = *(uint16_t*)regmem;
+				and16(sys, &temp, imm);
+				break;
+			}
 			case MUL_RM16: // F7 mm
 			{
 				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
@@ -1268,6 +1284,36 @@ void cpu_exec(Sys8086* sys)
 		{
 			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
 			sub16(sys, reg, *(uint16_t*)regmem);
+			break;
+		}
+		case TEST_AL_IMM8:
+		{
+			uint8_t temp = sys->cpu.ax.low;
+			uint8_t imm = read_address8(sys, cur_inst + 1, 0);
+			and8(sys, &temp, imm);
+			ip_increase = 2;
+			break;
+		}
+		case TEST_AX_IMM16:
+		{
+			uint16_t temp = sys->cpu.ax.low;
+			uint16_t imm = read_address16(sys, cur_inst + 1, 0);
+			and16(sys, &temp, imm);
+			ip_increase = 3;
+			break;
+		}
+		case TEST_RM8_R8:
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+			uint8_t temp = *(uint8_t*)regmem;
+			and8(sys, &temp, *(uint8_t*)reg);
+			break;
+		}
+		case TEST_RM16_R16:
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+			uint16_t temp = *(uint16_t*)regmem;
+			and16(sys, &temp, *(uint16_t*)reg);
 			break;
 		}
 		case XCHG_AX_R16: // 90 + i

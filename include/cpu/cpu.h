@@ -186,6 +186,13 @@
 #define SUB_R8_RM8 0x2A
 #define SUB_R16_RM16 0x2B
 
+#define TEST_AL_IMM8 0xA8
+#define TEST_AX_IMM16 0xA9
+#define TEST_RM8_IMM8 0x0 // Opcode group F6
+#define TEST_RM16_IMM16 0x0 // Opcode group F7
+#define TEST_RM8_R8 0x84
+#define TEST_RM16_R16 0x85
+
 #define XCHG_AX_R16 0x90
 #define XCHG_RM8_R8 0x86
 #define XCHG_RM16_R16 0x87
