@@ -106,6 +106,14 @@ void cpu_exec(Sys8086* sys)
 				cmp8(sys, *(uint8_t*)regmem, imm);
 				break;
 			}
+			case OR_RM8_IMM8:
+			{
+				uint8_t imm = 0;
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 0, 0, 0);
+
+				or8(sys, regmem, imm);
+				break;
+			}
 			}
 			break;
 		}
@@ -127,6 +135,14 @@ void cpu_exec(Sys8086* sys)
 				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 1, 0);
 
 				cmp16(sys, *(uint16_t*)regmem, imm);
+				break;
+			}
+			case OR_RM16_IMM16:
+			{
+				uint8_t imm = 0;
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 1, 0);
+
+				or16(sys, regmem, imm);
 				break;
 			}
 			}
@@ -152,6 +168,17 @@ void cpu_exec(Sys8086* sys)
 				cmp16(sys, *(uint16_t*)regmem, imm);
 				break;
 			}
+			case OR_RM16_IMM8:
+			{				
+				int16_t imm = 0;
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 0, 0);
+
+				or16(sys, regmem, imm);
+				break;
+			}
+			}
+			break;
+		}
 		case GROUP_OPCODE_D0:
 		{
 			switch (group_opcode_instruction)
@@ -940,6 +967,42 @@ void cpu_exec(Sys8086* sys)
 
 			mov16(sys, regmem, &imm16);
 
+			break;
+		}
+		case OR_AL_IMM8:
+		{
+			or8(sys, &sys->cpu.ax.low, read_address8(sys, cur_inst + 1, 0));
+			ip_increase = 2;
+			break;
+		}
+		case OR_AX_IMM16:
+		{
+			or16(sys, &sys->cpu.ax.whole, read_address16(sys, cur_inst + 1, 0));
+			ip_increase = 3;
+			break;
+		}
+		case OR_RM8_R8:
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+			or8(sys, regmem, *(uint8_t*)reg);
+			break;
+		}
+		case OR_RM16_R16:
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+			or16(sys, regmem, *(uint16_t*)reg);
+			break;
+		}
+		case OR_R8_RM8:
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+			or8(sys, reg, *(uint8_t*)regmem);
+			break;
+		}
+		case OR_R16_RM16:
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+			or16(sys, reg, *(uint16_t*)regmem);
 			break;
 		}
 		case OUT_IMM8_AL:

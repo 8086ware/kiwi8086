@@ -122,6 +122,15 @@
 #define MUL_RM8 0x4 // Opcode group F6
 #define MUL_RM16 0x4 // Opcode group F7
 
+#define OR_AL_IMM8 0x0C
+#define OR_AX_IMM16 0x0D
+#define OR_RM8_IMM8 0x1 // Opcode group 80
+#define OR_RM16_IMM16 0x1 // Opcode group 81
+#define OR_RM16_IMM8 0x1 // Opcode group 83
+#define OR_RM8_R8 0x08
+#define OR_RM16_R16 0x09
+#define OR_R8_RM8 0x0A
+#define OR_R16_RM16 0x0B
 
 #define OUT_IMM8_AL 0xE6
 #define OUT_IMM8_AX 0xE7
