@@ -66,6 +66,11 @@
 
 #define HLT 0xF4
 
+#define IN_AL_IMM8 0xE4
+#define IN_AX_IMM8 0xE5
+#define IN_AL_DX 0xEC
+#define IN_AX_DX 0xED
+
 // Affects flag register
 #define INC_RM8 0x0 // Opcode group FE
 #define INC_RM16 0x0 // Opcode group FF
