@@ -942,7 +942,32 @@ void cpu_exec(Sys8086* sys)
 
 			break;
 		}
-
+		case OUT_IMM8_AL:
+		{
+			uint8_t address = read_address8(sys, cur_inst + 1, 0);
+			write_address8(sys, address, sys->cpu.ax.low, 1);
+			ip_increase = 2;
+			break;
+		}
+		case OUT_IMM8_AX:
+		{
+			uint8_t address = read_address8(sys, cur_inst + 1, 0);
+			write_address16(sys, address, sys->cpu.ax.whole, 1);
+			ip_increase = 2;
+			break;
+		}
+		case OUT_DX_AL:
+		{
+			write_address8(sys, sys->cpu.dx.whole, sys->cpu.ax.low, 1);
+			ip_increase = 1;
+			break;
+		}
+		case OUT_DX_AX:
+		{
+			write_address8(sys, sys->cpu.dx.whole, sys->cpu.ax.whole, 1);
+			ip_increase = 1;
+			break;
+		}
 		case PUSH_R16: // 50 + i
 		case PUSH_R16 + 1:
 		case PUSH_R16 + 2:

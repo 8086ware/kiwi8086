@@ -122,6 +122,12 @@
 #define MUL_RM8 0x4 // Opcode group F6
 #define MUL_RM16 0x4 // Opcode group F7
 
+
+#define OUT_IMM8_AL 0xE6
+#define OUT_IMM8_AX 0xE7
+#define OUT_DX_AL 0xEE
+#define OUT_DX_AX 0xEF
+
 #define PUSH_R16 0x50
 #define PUSH_RM16 0x6 // Opcode group FF
 #define PUSH_SREG 0x06
