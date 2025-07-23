@@ -409,3 +409,27 @@ void and16(Sys8086* sys, uint16_t* value, uint16_t and)
 	cpu_modify_flag_parity(&sys->cpu, *value);
 	cpu_modify_flag_sign(&sys->cpu, *value, 1);
 }
+
+void xor8(Sys8086* sys, uint8_t* value, uint8_t xor)
+{
+	(*value) ^= xor;
+
+	sys->cpu.flag.whole &= ~FLAG_CARRY;
+	sys->cpu.flag.whole &= ~FLAG_OVERFLOW;
+
+	cpu_modify_flag_zero(&sys->cpu, *value);
+	cpu_modify_flag_parity(&sys->cpu, *value);
+	cpu_modify_flag_sign(&sys->cpu, *value, 0);
+}
+
+void xor16(Sys8086* sys, uint16_t* value, uint16_t xor)
+{
+	(*value) ^= xor;
+
+	sys->cpu.flag.whole &= ~FLAG_CARRY;
+	sys->cpu.flag.whole &= ~FLAG_OVERFLOW;
+
+	cpu_modify_flag_zero(&sys->cpu, *value);
+	cpu_modify_flag_parity(&sys->cpu, *value);
+	cpu_modify_flag_sign(&sys->cpu, *value, 1);
+}

@@ -40,7 +40,8 @@ void or16(Sys8086* sys, uint16_t* value, int16_t or);
 void and8(Sys8086* sys, uint8_t* value, uint8_t and);
 void and16(Sys8086* sys, uint16_t* value, uint16_t and);
 
-
+void xor8(Sys8086* sys, uint8_t* value, uint8_t xor);
+void xor16(Sys8086* sys, uint16_t* value, uint16_t xor);
 
 #endif
 

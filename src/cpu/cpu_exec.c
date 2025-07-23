@@ -130,6 +130,14 @@ void cpu_exec(Sys8086* sys)
 				or8(sys, regmem, imm);
 				break;
 			}
+			case XOR_RM8_IMM8:
+			{
+				uint8_t imm = 0;
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 0, 0, 0);
+
+				xor8(sys, regmem, imm);
+				break;
+			}
 			}
 			break;
 		}
@@ -177,6 +185,14 @@ void cpu_exec(Sys8086* sys)
 				or16(sys, regmem, imm);
 				break;
 			}
+			case XOR_RM16_IMM16:
+			{
+				uint8_t imm = 0;
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 1, 0);
+
+				xor16(sys, regmem, imm);
+				break;
+			}
 			}
 			break;
 		}
@@ -222,6 +238,14 @@ void cpu_exec(Sys8086* sys)
 				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 0, 0);
 
 				or16(sys, regmem, imm);
+				break;
+			}
+			case XOR_RM16_IMM8:
+			{				
+				int16_t imm = 0;
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 0, 0);
+
+				xor16(sys, regmem, imm);
 				break;
 			}
 			}
@@ -1355,6 +1379,48 @@ void cpu_exec(Sys8086* sys)
 
 			mov16(sys, reg, regmem);
 			mov16(sys, regmem, &temp);
+			break;
+		}
+		case XOR_AL_IMM8:
+		{
+			uint8_t imm = read_address8(sys, cur_inst + 1, 0);
+			xor8(sys, &sys->cpu.ax.low, imm);
+			ip_increase = 2;
+			break;
+		}
+		case XOR_AX_IMM16:
+		{
+			uint8_t imm = read_address16(sys, cur_inst + 1, 0);
+			xor16(sys, &sys->cpu.ax.whole, imm);
+			ip_increase = 3;
+			break;
+		}
+		case XOR_RM8_R8:
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+			
+			xor8(sys, regmem, *(uint8_t*)reg);
+			break;
+		}
+		case XOR_RM16_R16:
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+			
+			xor16(sys, regmem, *(uint16_t*)reg);
+			break;
+		}
+		case XOR_R8_RM8:
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+			
+			xor8(sys, reg, *(uint8_t*)regmem);
+			break;
+		}
+		case XOR_R16_RM16:
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+			
+			xor16(sys, reg, *(uint16_t*)regmem);
 			break;
 		}
 		default:
