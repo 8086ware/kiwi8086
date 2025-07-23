@@ -16,186 +16,205 @@
 //REG8/16 = A 16/8 bit register
 //PTR16 = 16 bit segment (far jump/call)
 
-#define GROUP_OPCODE_80 0x80
-#define GROUP_OPCODE_81 0x81
-#define GROUP_OPCODE_83 0x83
-#define GROUP_OPCODE_D0 0xD0
-#define GROUP_OPCODE_D1 0xD1
-#define GROUP_OPCODE_D2 0xD2
-#define GROUP_OPCODE_D3 0xD3
-#define GROUP_OPCODE_F6 0xF6
-#define GROUP_OPCODE_F7 0xF7
-#define GROUP_OPCODE_FE 0xFE
-#define GROUP_OPCODE_FF 0xFF
+enum CPU_Group_Opcode
+{
+	GROUP_OPCODE_80 = 0x80,
+	GROUP_OPCODE_81 = 0x81,
+	GROUP_OPCODE_83 = 0x83,
+	GROUP_OPCODE_D0 = 0xD0,
+	GROUP_OPCODE_D1 = 0xD1,
+	GROUP_OPCODE_D2 = 0xD2,
+	GROUP_OPCODE_D3 = 0xD3,
+	GROUP_OPCODE_F6 = 0xF6,
+	GROUP_OPCODE_F7 = 0xF7,
+	GROUP_OPCODE_FE = 0xFE,
+	GROUP_OPCODE_FF = 0xFF,
+};
 
-#define PREFIX_ES 0x26
-#define PREFIX_CS 0x2E
-#define PREFIX_SS 0x36
-#define PREFIX_DS 0x3E
+enum CPU_Opcode_Prefix
+{
+	PREFIX_ES = 0x26,
+	PREFIX_CS = 0x2E,
+	PREFIX_SS = 0x36,
+	PREFIX_DS = 0x3E,
+};
 
-// Affects flag register
-#define ADD_RM8_IMM8 0x0 // Opcode group 80
-#define ADD_RM16_IMM16 0x0 // Opcode group 81
-#define ADD_RM16_IMM8 0x0 // Opcode group 83
-#define ADD_RM8_R8 0x00
-#define ADD_RM16_R16 0x01
-#define	ADD_R8_RM8 0x02
-#define ADD_R16_RM16 0x03
-#define ADD_AL_IMM8 0x04
-#define ADD_AX_IMM16 0x05
 
-#define AND_AL_IMM8 0x24
-#define AND_AX_IMM16 0x25
-#define AND_RM8_IMM8 0x4 // Opcode group 80
-#define AND_RM16_IMM16 0x4 // Opcode group 81
-#define AND_RM16_IMM8 0x4 // Opcode group 83
-#define AND_RM8_R8 0x20
-#define AND_RM16_R16 0x21
-#define AND_R8_RM8 0x22
-#define AND_R16_RM16 0x23
+enum CPU_Opcode
+{
+	ADD_RM8_IMM8 = 0x0,// Opcode group 80
+	ADD_RM16_IMM16 = 0x0,// Opcode group 81
+	ADD_RM16_IMM8 = 0x0, // Opcode group 83
+	ADD_RM8_R8 = 0x00,
+	ADD_RM16_R16 = 0x01,
+	ADD_R8_RM8 = 0x02,
+	ADD_R16_RM16 = 0x03,
+	ADD_AL_IMM8 = 0x04,
+	ADD_AX_IMM16 = 0x05,
 
-#define CALL_REL16 0xE8
-#define CALL_RM16 0x2 // Opcode group FF
-#define CALL_PTR16_16 0x9A
-#define CALL_M16_16 0x3 // Opcode group FF
+	AND_AL_IMM8 = 0x24,
+	AND_AX_IMM16 = 0x25,
+	AND_RM8_IMM8 = 0x4, // Opcode group 80
+	AND_RM16_IMM16 = 0x4, // Opcode group 81
+	AND_RM16_IMM8 = 0x4, // Opcode group 83
+	AND_RM8_R8 = 0x20,
+	AND_RM16_R16 = 0x21,
+	AND_R8_RM8 = 0x22,
+	AND_R16_RM16 = 0x23,
 
-#define CMP_AL_IMM8 0x3C
-#define CMP_AX_IMM16 0x3D
-#define CMP_RM8_IMM8 0x7 // Opcode group 80
-#define CMP_RM16_IMM16 0x7 // Opcode group 81
-#define CMP_RM16_IMM8 0x7 // Opcode group 83
-#define CMP_RM8_R8 0x38
-#define CMP_RM16_R16 0x39
-#define CMP_R8_RM8 0x3A
-#define CMP_R16_RM16 0x3B
+	CALL_REL16 = 0xE8,
+	CALL_RM16 = 0x2, // Opcode group FF
+	CALL_PTR16_16 = 0x9A,
+	CALL_M16_16 = 0x3, // Opcode group FF
 
-// Affects flag register
-#define DEC_RM8 0x1 // Opcode group FE
-#define DEC_RM16 0x1 // Opcode group FF
-#define DEC_R16 0x48
+	CMP_AL_IMM8 = 0x3C,
+	CMP_AX_IMM16 = 0x3D,
+	CMP_RM8_IMM8 = 0x7, // Opcode group 80
+	CMP_RM16_IMM16 = 0x7, // Opcode group 81
+	CMP_RM16_IMM8 = 0x7, // Opcode group 83
+	CMP_RM8_R8 = 0x38,
+	CMP_RM16_R16 = 0x39,
+	CMP_R8_RM8 = 0x3A,
+	CMP_R16_RM16 = 0x3B,
 
-#define HLT 0xF4
+	// Affects flag register
+	DEC_RM8 = 0x1, // Opcode group FE
+	DEC_RM16 = 0x1, // Opcode group FF
+	DEC_R16 = 0x48,
 
-#define IN_AL_IMM8 0xE4
-#define IN_AX_IMM8 0xE5
-#define IN_AL_DX 0xEC
-#define IN_AX_DX 0xED
+	HLT = 0xF4,
 
-// Affects flag register
-#define INC_RM8 0x0 // Opcode group FE
-#define INC_RM16 0x0 // Opcode group FF
-#define INC_R16 0x40
+	IN_AL_IMM8 = 0xE4,
+	IN_AX_IMM8 = 0xE5,
+	IN_AL_DX = 0xEC,
+	IN_AX_DX = 0xED,
 
-#define INT_IMM8 0xCD
+	// Affects flag register
+	INC_RM8 = 0x0, // Opcode group FE
+	INC_RM16 = 0x0, // Opcode group FF
+	INC_R16 = 0x40,
 
-#define IRET 0xCF
+	INT_IMM8 = 0xCD,
 
-// Affects flag register
-#define JMP_REL8 0xEB
-#define JMP_REL16 0xE9
-#define JMP_RM16 0x4 // Opcode group FF
-#define JMP_PTR16_16 0xEA
+	IRET = 0xCF,
 
-#define JA_REL8 0x77
-#define JAE_REL8 0x73
-#define JB_REL8 0x72
-#define JBE_REL8 0x76
-#define JCXZ_REL8 0xE3
-#define JE_REL8 0x74
-#define JG_REL8 0x7F
-#define JGE_REL8 0x7D
-#define JL_REL8 0x7C
-#define JLE_REL8 0x7E
-#define JNE_REL8 0x75
-#define JNO_REL8 0x71
-#define JNP_REL8 0x7B
-#define JNS_REL8 0x79
-#define JO_REL8 0x70
-#define JP_REL8 0x7A
-#define JS_REL8 0x78
+	// Affects flag register
+	JMP_REL8 = 0xEB,
+	JMP_REL16 = 0xE9,
+	JMP_RM16 = 0x4, // Opcode group FF
+	JMP_PTR16_16 = 0xEA,
 
-#define MOV_RM8_R8 0x88
-#define MOV_RM16_R16 0x89
-#define MOV_R8_RM8 0x8A
-#define MOV_R16_RM16 0x8B
-#define MOV_RM16_SREG 0x8C
-#define MOV_SREG_RM16 0x8E
-#define MOV_AL_MOFFS8 0xA0
-#define MOV_AX_MOFFS16 0xA1
-#define MOV_MOFFS8_AL 0xA2
-#define MOV_MOFFS16_AX 0xA3
-#define MOV_R8_IMM8 0xB0
-#define MOV_R16_IMM16 0xB8
-#define MOV_RM8_IMM8 0xC6
-#define MOV_RM16_IMM16 0xC7
+	JA_REL8 = 0x77,
+	JAE_REL8 = 0x73,
+	JB_REL8 = 0x72,
+	JBE_REL8 = 0x76,
+	JCXZ_REL8 = 0xE3,
+	JE_REL8 = 0x74,
+	JG_REL8 = 0x7F,
+	JGE_REL8 = 0x7D,
+	JL_REL8 = 0x7C,
+	JLE_REL8 = 0x7E,
+	JNE_REL8 = 0x75,
+	JNO_REL8 = 0x71,
+	JNP_REL8 = 0x7B,
+	JNS_REL8 = 0x79,
+	JO_REL8 = 0x70,
+	JP_REL8 = 0x7A,
+	JS_REL8 = 0x78,
 
-#define MUL_RM8 0x4 // Opcode group F6
-#define MUL_RM16 0x4 // Opcode group F7
+	MOV_RM8_R8 = 0x88,
+	MOV_RM16_R16 = 0x89,
+	MOV_R8_RM8 = 0x8A,
+	MOV_R16_RM16 = 0x8B,
+	MOV_RM16_SREG = 0x8C,
+	MOV_SREG_RM16 = 0x8E,
+	MOV_AL_MOFFS8 = 0xA0,
+	MOV_AX_MOFFS16 = 0xA1,
+	MOV_MOFFS8_AL = 0xA2,
+	MOV_MOFFS16_AX = 0xA3,
+	MOV_R8_IMM8 = 0xB0,
+	MOV_R16_IMM16 = 0xB8,
+	MOV_RM8_IMM8 = 0xC6,
+	MOV_RM16_IMM16 = 0xC7,
 
-#define OR_AL_IMM8 0x0C
-#define OR_AX_IMM16 0x0D
-#define OR_RM8_IMM8 0x1 // Opcode group 80
-#define OR_RM16_IMM16 0x1 // Opcode group 81
-#define OR_RM16_IMM8 0x1 // Opcode group 83
-#define OR_RM8_R8 0x08
-#define OR_RM16_R16 0x09
-#define OR_R8_RM8 0x0A
-#define OR_R16_RM16 0x0B
+	MUL_RM8 = 0x4, // Opcode group F6
+	MUL_RM16 = 0x4, // Opcode group F7
 
-#define OUT_IMM8_AL 0xE6
-#define OUT_IMM8_AX 0xE7
-#define OUT_DX_AL 0xEE
-#define OUT_DX_AX 0xEF
+	OR_AL_IMM8 = 0x0C,
+	OR_AX_IMM16 = 0x0D,
+	OR_RM8_IMM8 = 0x1, // Opcode group 80
+	OR_RM16_IMM16 = 0x1, // Opcode group 81
+	OR_RM16_IMM8 = 0x1, // Opcode group 83
+	OR_RM8_R8 = 0x08,
+	OR_RM16_R16 = 0x09,
+	OR_R8_RM8 = 0x0A,
+	OR_R16_RM16 = 0x0B,
 
-#define PUSH_R16 0x50
-#define PUSH_RM16 0x6 // Opcode group FF
-#define PUSH_SREG 0x06
+	OUT_IMM8_AL = 0xE6,
+	OUT_IMM8_AX = 0xE7,
+	OUT_DX_AL = 0xEE,
+	OUT_DX_AX = 0xEF,
 
-#define POP_R16 0x58
-#define POP_RM16 0x8F
-#define POP_SREG 0x07
+	PUSH_R16 = 0x50,
+	PUSH_RM16 = 0x6, // Opcode group FF
+	PUSH_SREG = 0x6,
 
-#define RET_NEAR 0xC3
-#define RET_FAR 0xCB
-#define RET_NEAR_IMM16 0xC2
-#define RET_FAR_IMM16 0xCA
+	POP_R16 = 0x58,
+	POP_RM16 = 0x8F,
+	POP_SREG = 0x07,
 
-// Same as SHL
-#define SAL_RM8_1 0x4 // Opcode group D0
-#define SAL_RM8_CL 0x4 // Opcode group D2
-#define SAL_RM16_1 0x4 // Opcode group D1
-#define SAL_RM16_CL 0x4 // Opcode group D3
+	RET_NEAR = 0xC3,
+	RET_FAR = 0xCB,
+	RET_NEAR_IMM16 = 0xC2,
+	RET_FAR_IMM16 = 0xCA,
 
-#define SAR_RM8_1 0x7 // Opcode group D0
-#define SAR_RM8_CL 0x7 // Opcode group D2
-#define SAR_RM16_1 0x7 // Opcode group D1
-#define SAR_RM16_CL 0x7 // Opcode group D3
+	// Same as SHL
+	SAL_RM8_1 = 0x4, // Opcode group D0
+	SAL_RM8_CL = 0x4, // Opcode group D2
+	SAL_RM16_1 = 0x4, // Opcode group D1
+	SAL_RM16_CL = 0x4, // Opcode group D3
 
-#define SHR_RM8_1 0x5 // Opcode group D0
-#define SHR_RM8_CL 0x5 // Opcode group D2
-#define SHR_RM16_1 0x5 // Opcode group D1
-#define SHR_RM16_CL 0x5 // Opcode group D3
+	SAR_RM8_1 = 0x7, // Opcode group D0
+	SAR_RM8_CL = 0x7, // Opcode group D2
+	SAR_RM16_1 = 0x7, // Opcode group D1
+	SAR_RM16_CL = 0x7, // Opcode group D3
 
-#define SUB_AL_IMM8 0x2C
-#define SUB_AX_IMM16 0x2D
-#define SUB_RM8_IMM8 0x5 // Opcode group 80
-#define SUB_RM16_IMM16 0x5 // Opcode group 81
-#define SUB_RM16_IMM8 0x5 // Opcode group 83
-#define SUB_RM8_R8 0x28
-#define SUB_RM16_R16 0x29
-#define SUB_R8_RM8 0x2A
-#define SUB_R16_RM16 0x2B
+	SHR_RM8_1 = 0x5, // Opcode group D0
+	SHR_RM8_CL = 0x5, // Opcode group D2
+	SHR_RM16_1 = 0x5, // Opcode group D1
+	SHR_RM16_CL = 0x5, // Opcode group D3
 
-#define TEST_AL_IMM8 0xA8
-#define TEST_AX_IMM16 0xA9
-#define TEST_RM8_IMM8 0x0 // Opcode group F6
-#define TEST_RM16_IMM16 0x0 // Opcode group F7
-#define TEST_RM8_R8 0x84
-#define TEST_RM16_R16 0x85
+	SUB_AL_IMM8 = 0x2C,
+	SUB_AX_IMM16 = 0x2D,
+	SUB_RM8_IMM8 = 0x5, // Opcode group 80
+	SUB_RM16_IMM16 = 0x5, // Opcode group 81
+	SUB_RM16_IMM8 = 0x5, // Opcode group 83
+	SUB_RM8_R8 = 0x28,
+	SUB_RM16_R16 = 0x29,
+	SUB_R8_RM8 = 0x2A,
+	SUB_R16_RM16 = 0x2B,
 
-#define XCHG_AX_R16 0x90
-#define XCHG_RM8_R8 0x86
-#define XCHG_RM16_R16 0x87
+	TEST_AL_IMM8 = 0xA8,
+	TEST_AX_IMM16 = 0xA9,
+	TEST_RM8_IMM8 = 0x0, // Opcode group F6
+	TEST_RM16_IMM16 = 0x0, // Opcode group F7
+	TEST_RM8_R8 = 0x84,
+	TEST_RM16_R16 = 0x85,
+
+	XCHG_AX_R16 = 0x90,
+	XCHG_RM8_R8 = 0x86,
+	XCHG_RM16_R16 = 0x87,
+
+	XOR_AL_IMM8 = 0x34,
+	XOR_AX_IMM16 = 0x35,
+	XOR_RM8_IMM8 = 0x6, // Opcode group 80
+	XOR_RM16_IMM16 = 0x6, // Opcode group 81
+	XOR_RM16_IMM8 = 0x6, // Opcode group 83
+	XOR_RM8_R8 = 0x30,
+	XOR_RM16_R16 = 0x31,
+	XOR_R8_RM8 = 0x32,
+	XOR_R16_RM16 = 0x33,
+};
 
 typedef union Register
 {
