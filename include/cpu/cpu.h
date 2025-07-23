@@ -229,6 +229,7 @@ typedef union Register
 
 typedef struct CPU
 {
+	_Bool prev_byte_success;
 	_Bool halted;
 
 	// General purpose registers

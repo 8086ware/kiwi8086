@@ -58,28 +58,32 @@ void cpu_exec(Sys8086* sys)
 		uint8_t group_opcode_instruction = (read_address8(sys, cur_inst + 1, 0) & 0b00111000) >> 3; // if opcode is an opcode group, this is valid, reg part identifies the opcode in mod rm byte
 		uint8_t opcode_prefix = read_address8(sys, cur_inst - 1, 0);
 
-		switch (opcode_prefix) // opcode prefix
+		// This means last byte isn't part of instruction
+		if(!sys->cpu.prev_byte_success)
 		{
-		case PREFIX_ES:
-		{
-			data_seg = &sys->cpu.es;
-			break;
-		}
-		case PREFIX_CS:
-		{
-			data_seg = &sys->cpu.cs;
-			break;
-		}
-		case PREFIX_SS:
-		{
-			data_seg = &sys->cpu.ss;
-			break;
-		}
-		case PREFIX_DS:
-		{
-			data_seg = &sys->cpu.ds;
-			break;
-		}
+			switch (opcode_prefix) // opcode prefix
+			{
+			case PREFIX_ES:
+			{
+				data_seg = &sys->cpu.es;
+				break;
+			}
+			case PREFIX_CS:
+			{
+				data_seg = &sys->cpu.cs;
+				break;
+			}
+			case PREFIX_SS:
+			{
+				data_seg = &sys->cpu.ss;
+				break;
+			}
+			case PREFIX_DS:
+			{
+				data_seg = &sys->cpu.ds;
+				break;
+			}
+			}
 		}
 
 		// In the opcodes, dd is displacement and ii is immediate and mm is mod. All of them are optional
@@ -1424,10 +1428,12 @@ void cpu_exec(Sys8086* sys)
 			break;
 		}
 		default:
+			sys->cpu.prev_byte_success = 0;
 			sys->cpu.ip.whole++;
 			return;
 		}
 
+		sys->cpu.prev_byte_success = 1;
 		sys->cpu.ip.whole += ip_increase;
 	}
 }
