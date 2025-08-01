@@ -163,9 +163,9 @@ void cpu_exec(Sys8086* sys)
 		void* reg = NULL;
 		void* regmem = NULL;
 
-		uint8_t opcode = read_address8(sys, cur_inst, 0);
-		uint8_t group_opcode_instruction = (read_address8(sys, cur_inst + 1, 0) & 0b00111000) >> 3; // if opcode is an opcode group, this is valid, reg part identifies the opcode in mod rm byte
-		uint8_t opcode_prefix = read_address8(sys, cur_inst - 1, 0);
+		enum CPU_Opcode opcode = read_address8(sys, cur_inst, 0);
+		enum CPU_Group_Opcode group_opcode_instruction = (read_address8(sys, cur_inst + 1, 0) & 0b00111000) >> 3; // if opcode is an opcode group, this is valid, reg part identifies the opcode in mod rm byte
+		enum CPU_Opcode_Prefix opcode_prefix = read_address8(sys, cur_inst - 1, 0);
 
 		// This means last byte isn't part of instruction
 		if(!sys->cpu.prev_byte_success)
