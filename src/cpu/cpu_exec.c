@@ -1,42 +1,151 @@
 #include "system.h"
 #include "cpu/instructions.h"
 #include "memory.h"
+#include "pic.h"
 
 void cpu_exec(Sys8086* sys)
 {
-	if (sys->pic_slave.irq != -1) // Give the request to the master pic
-	{
-		sys->pic_master.irq = sys->pic_slave.irq;
-		sys->pic_slave.irq = -1;
-	}
-
 	int irq_vector_offset = 0;
 
-	if (sys->pic_master.irq != -1)
+	if (sys->pic_master.irr != 0 || sys->pic_slave.irr != 0)
 	{
-		if (sys->pic_master.irq <= 7)
+		// This if statement chain is based on the interrupt priority handling
+
+		int irq_to_handle = 0;
+		
+		if(sys->pic_master.irr & 0b00000001)
 		{
-			irq_vector_offset = sys->pic_master.irq + sys->pic_master.vector_offset;
+			sys->pic_master.isr |= 0b00000001;
+			sys->pic_master.irr &= ~0b00000001;
+			irq_to_handle = 0;
+		}
+
+		else if(sys->pic_master.irr & 0b00000010)
+		{
+			sys->pic_master.isr |= 0b00000010;
+			sys->pic_master.irr &= ~0b00000010;
+			irq_to_handle = 1;
+		}
+
+		else if(sys->pic_master.irr & 0b00000100)
+		{
+			sys->pic_master.isr |= 0b00000100;
+			sys->pic_master.irr &= ~0b00000100;
+			irq_to_handle = 2;
+		}
+
+		else if(sys->pic_slave.irr & 0b00000001)
+		{
+			sys->pic_slave.isr |= 0b00000001;
+			sys->pic_slave.irr &= ~0b00000001;
+			irq_to_handle = 8;
+		}
+
+		else if(sys->pic_slave.irr & 0b00000010)
+		{
+			sys->pic_slave.isr |= 0b00000010;
+			sys->pic_slave.irr &= ~0b00000010;
+			irq_to_handle = 9;
+		}
+
+		else if(sys->pic_slave.irr & 0b00000100)
+		{
+			sys->pic_slave.isr |= 0b00000100;
+			sys->pic_slave.irr &= ~0b00000100;
+			irq_to_handle = 10;
+		}
+
+		else if(sys->pic_slave.irr & 0b00001000)
+		{
+			sys->pic_slave.isr |= 0b00001000;
+			sys->pic_slave.irr &= ~0b00001000;
+			irq_to_handle = 11;
+		}
+
+		else if(sys->pic_slave.irr & 0b00010000)
+		{
+			sys->pic_slave.isr |= 0b00010000;
+			sys->pic_slave.irr &= ~0b00010000;
+			irq_to_handle = 12;
+		}
+
+		else if(sys->pic_slave.irr & 0b00100000)
+		{
+			sys->pic_slave.isr |= 0b00100000;
+			sys->pic_slave.irr &= ~0b00100000;
+			irq_to_handle = 13;
+		}
+
+		else if(sys->pic_slave.irr & 0b01000000)
+		{
+			sys->pic_slave.isr |= 0b01000000;
+			sys->pic_slave.irr &= ~0b01000000;
+			irq_to_handle = 14;
+		}
+
+		else if(sys->pic_slave.irr & 0b10000000)
+		{
+			sys->pic_slave.isr |= 0b10000000;
+			sys->pic_slave.irr &= ~0b10000000;
+			irq_to_handle = 15;
+		}
+
+		else if(sys->pic_master.irr & 0b00001000)
+		{
+			sys->pic_master.isr |= 0b00001000;
+			sys->pic_master.irr &= ~0b00001000;
+			irq_to_handle = 3;
+		}
+
+		else if(sys->pic_master.irr & 0b00010000)
+		{
+			sys->pic_master.isr |= 0b00010000;
+			sys->pic_master.irr &= ~0b00010000;
+			irq_to_handle = 4;
+		}
+		
+		else if(sys->pic_master.irr & 0b00100000)
+		{
+			sys->pic_master.isr |= 0b00100000;
+			sys->pic_master.irr &= ~0b00100000;
+			irq_to_handle = 5;
+		}
+
+		else if(sys->pic_master.irr & 0b01000000)
+		{
+			sys->pic_master.isr |= 0b01000000;
+			sys->pic_master.irr &= ~0b01000000;
+			irq_to_handle = 6;
+		}
+
+		else if(sys->pic_master.irr & 0b10000000)
+		{
+			sys->pic_master.isr |= 0b10000000;
+			sys->pic_master.irr &= ~0b10000000;
+			irq_to_handle = 7;
+		}
+
+		if (irq_to_handle <= 7)
+		{
+			irq_vector_offset = irq_to_handle * 4 + sys->pic_master.vector_offset;
 		}
 
 		else
 		{
-			irq_vector_offset = sys->pic_master.irq + sys->pic_slave.vector_offset;
+			irq_vector_offset = (irq_to_handle - 8) * 4 + sys->pic_slave.vector_offset;
 		}
 
 		push(sys, sys->cpu.flag.whole);
 		push(sys, sys->cpu.cs.whole);
 		push(sys, sys->cpu.ip.whole);
 
-		uint16_t interrupt_offset = read_address16(sys, seg_mem(0, irq_vector_offset * 4), 0);
-		uint16_t interrupt_segment = read_address16(sys, seg_mem(0, irq_vector_offset * 4) + 2, 0);
+		uint16_t interrupt_offset = read_address16(sys, seg_mem(0, irq_vector_offset), 0);
+		uint16_t interrupt_segment = read_address16(sys, seg_mem(0, irq_vector_offset) + 2, 0);
 
 		sys->cpu.ip.whole = interrupt_offset;
 		sys->cpu.cs.whole = interrupt_segment;
 
 		sys->cpu.halted = 0;
-
-		sys->pic_master.irq = -1;
 	}
 
 	// Fetch, Decode and execute instruction
