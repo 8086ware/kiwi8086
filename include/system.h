@@ -5,7 +5,8 @@
 #include "cpu/cpu.h"
 #include <stdio.h>
 #include "display/mda.h"
-#include "8259pic.h"
+#include "pic.h"
+#include "ps2/controller.h"
 
 #define MAX_MEMORY_8086 1048576
 // Things to emulate:
@@ -23,8 +24,8 @@ typedef struct Sys8086
 	MDA display;
 	uint8_t* memory;
 	CPU cpu;
-	pic8259 pic_master;
-	pic8259 pic_slave;
+	Pic pic_master;
+	Pic pic_slave;
 } Sys8086;
 
 Sys8086* init_sys(FILE* image, FILE* bios_rom);
