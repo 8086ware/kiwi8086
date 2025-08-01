@@ -988,6 +988,60 @@ void cpu_exec(Sys8086* sys)
 			jmp(sys, new_cs, new_ip);
 			break;
 		}
+		case LOOP_REL8:
+		{
+			sys->cpu.cx.whole--;
+
+			if(sys->cpu.cx.whole != 0)
+			{
+				int8_t jmp_value = read_address8(sys, cur_inst + 1, 0) + 2;
+
+				jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + jmp_value);
+			}
+
+			else
+			{
+				ip_increase += 2;
+			}
+
+			break;
+		}
+		case LOOPE_REL8:
+		{
+			sys->cpu.cx.whole--;
+			
+			if(sys->cpu.cx.whole != 0 && sys->cpu.flag.whole & FLAG_ZERO)
+			{
+				int8_t jmp_value = read_address8(sys, cur_inst + 1, 0) + 2;
+
+				jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + jmp_value);
+			}
+
+			else
+			{
+				ip_increase += 2;
+			}
+
+			break;
+		}
+		case LOOPNE_REL8:
+		{
+			sys->cpu.cx.whole--;
+			
+			if(sys->cpu.cx.whole != 0 && (sys->cpu.flag.whole & FLAG_ZERO) == 0)
+			{
+				int8_t jmp_value = read_address8(sys, cur_inst + 1, 0) + 2;
+
+				jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + jmp_value);
+			}
+
+			else
+			{
+				ip_increase += 2;
+			}
+			
+			break;
+		}
 		case MOV_RM8_R8: // 88 mm dd dd
 		{
 			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);

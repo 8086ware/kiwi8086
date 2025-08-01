@@ -127,6 +127,10 @@ enum CPU_Opcode
 	JP_REL8 = 0x7A,
 	JS_REL8 = 0x78,
 
+	LOOP_REL8 = 0xE2,
+	LOOPE_REL8 = 0xE1,
+	LOOPNE_REL8 = 0xE0,
+
 	MOV_RM8_R8 = 0x88,
 	MOV_RM16_R16 = 0x89,
 	MOV_R8_RM8 = 0x8A,
