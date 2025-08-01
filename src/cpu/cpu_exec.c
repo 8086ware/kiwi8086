@@ -389,6 +389,13 @@ void cpu_exec(Sys8086* sys)
 
 				break;
 			}
+			case NEG_RM8:
+			{	
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+
+				neg8(sys, regmem);
+				break;
+			}
 			}
 			break;
 		}
@@ -410,6 +417,13 @@ void cpu_exec(Sys8086* sys)
 
 				mul16(sys, *(uint16_t*)regmem);
 
+				break;
+			}
+			case NEG_RM16:
+			{
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+
+				neg16(sys, regmem);
 				break;
 			}
 			}

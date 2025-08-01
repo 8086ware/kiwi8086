@@ -140,6 +140,9 @@ enum CPU_Opcode
 	MUL_RM8 = 0x4, // Opcode group F6
 	MUL_RM16 = 0x4, // Opcode group F7
 
+	NEG_RM8 = 0x3, // Opcode group F6
+	NEG_RM16 = 0x3, // Opcode group F7
+
 	OR_AL_IMM8 = 0x0C,
 	OR_AX_IMM16 = 0x0D,
 	OR_RM8_IMM8 = 0x1, // Opcode group 80

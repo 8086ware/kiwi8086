@@ -433,3 +433,51 @@ void xor16(Sys8086* sys, uint16_t* value, uint16_t xor)
 	cpu_modify_flag_parity(&sys->cpu, *value);
 	cpu_modify_flag_sign(&sys->cpu, *value, 1);
 }
+
+void neg8(Sys8086* sys, uint8_t* value)
+{	
+	uint8_t old_val = *value;
+
+	(*value) = 0 - (*value);
+
+	if(*value != 0)
+	{
+		sys->cpu.flag.whole |= FLAG_CARRY;
+	}
+
+	else
+	{
+		sys->cpu.flag.whole &= ~FLAG_CARRY;
+	} 
+
+	cpu_modify_flag_carry(&sys->cpu, old_val, (*value), 0);
+	cpu_modify_flag_half_carry(&sys->cpu, old_val, (*value));
+	cpu_modify_flag_zero(&sys->cpu, (*value));
+	cpu_modify_flag_parity(&sys->cpu, (*value));
+	cpu_modify_flag_sign(&sys->cpu, (*value), 0);
+	cpu_modify_flag_overflow(&sys->cpu, 0, old_val, (*value), 0);
+}
+
+void neg16(Sys8086* sys, uint16_t* value)
+{	
+	uint16_t old_val = *value;
+
+	(*value) = 0 - (*value);
+
+	if(*value != 0)
+	{
+		sys->cpu.flag.whole |= FLAG_CARRY;
+	}
+
+	else
+	{
+		sys->cpu.flag.whole &= ~FLAG_CARRY;
+	} 
+
+	cpu_modify_flag_carry(&sys->cpu, old_val, (*value), 1);
+	cpu_modify_flag_half_carry(&sys->cpu, old_val, (*value));
+	cpu_modify_flag_zero(&sys->cpu, (*value));
+	cpu_modify_flag_parity(&sys->cpu, (*value));
+	cpu_modify_flag_sign(&sys->cpu, (*value), 1);
+	cpu_modify_flag_overflow(&sys->cpu, 0, old_val, (*value), 1);
+}
