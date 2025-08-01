@@ -3,11 +3,16 @@
 
 #include <stdint.h>
 
+// neg, load far pointer, cbw, std, flag instructions, xlat, sti, adc, stosb, movsb, cli, das, clc, bound, 
+// string family instructions (*bs), int3, cld, rol (and others)
 #define FLAG_CARRY      0b0000000000000001
 #define FLAG_PARITY     0b0000000000000100
 #define FLAG_HALF_CARRY 0b0000000000010000
 #define FLAG_ZERO       0b0000000001000000
 #define FLAG_SIGN       0b0000000010000000
+#define FLAG_TRAP       0b0000000100000000
+#define FLAG_INTERRUPT  0b0000001000000000
+#define FLAG_DIRECTION  0b0000010000000000
 #define FLAG_OVERFLOW   0b0000100000000000
 
 //IMM8/16 = An value given, a constant
