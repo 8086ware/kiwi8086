@@ -1,11 +1,12 @@
 #include "memory.h"
 #include <stdint.h>
 #include "system.h"
-#include "8259pic.h"
+#include "pic.h"
 #include <stdio.h>
+#include "ps2/controller.h"
 
 void write_address8(Sys8086* sys, uint32_t address, uint8_t value, _Bool port)
-{
+{	
 	if (address >= MAX_MEMORY_8086)
 	{
 		return;
