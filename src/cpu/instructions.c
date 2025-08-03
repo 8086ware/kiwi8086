@@ -52,15 +52,15 @@ void mov16(Sys8086* sys, uint16_t* dest, uint16_t* src)
 	int address_dest = 0;
 	int address_src = 0;
 
-	if(dest >= (uint16_t*)sys->memory && (uint16_t*)sys->memory + MAX_MEMORY_8086 >= dest)
+	if((uint8_t*)dest >= (uint8_t*)sys->memory && (uint8_t*)sys->memory + MAX_MEMORY_8086 >= (uint8_t*)dest)
 	{
-		address_dest = dest - (uint16_t*)sys->memory;
+		address_dest = (uint8_t*)dest - (uint8_t*)sys->memory;
 		dest_in_mem = 1;
 	}
 
-	if(src >= (uint16_t*)sys->memory && (uint16_t*)sys->memory + MAX_MEMORY_8086 >= src)
+	if((uint8_t*)src >= (uint8_t*)sys->memory && (uint8_t*)sys->memory + MAX_MEMORY_8086 >= (uint8_t*)src)
 	{
-		address_src = src - (uint16_t*)sys->memory;
+		address_src = (uint8_t*)src - (uint8_t*)sys->memory;
 		src_in_mem = 1;
 	}
 
