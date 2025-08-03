@@ -43,6 +43,7 @@ void cpu_modify_flag_carry(CPU* cpu, uint16_t old_val, uint16_t new_val, _Bool w
 }
 
 // Sees if amount of bits set is even (on) or odd (off)
+// only least significant byte so its fine passing 16 bit value
 
 void cpu_modify_flag_parity(CPU* cpu, uint8_t val)
 {
