@@ -3,8 +3,8 @@
 
 #include <stdint.h>
 
-// neg, load far pointer, cbw, std, flag instructions, xlat, sti, adc, stosb, movsb, cli, das, clc, bound, 
-// string family instructions (*bs), int3, cld, rol (and others)
+// load far pointer, cbw, xlat, adc, stosb, movsb, das, bound, 
+// string family instructions (*bs), int3, rol (and others)
 #define FLAG_CARRY      0b0000000000000001
 #define FLAG_PARITY     0b0000000000000100
 #define FLAG_HALF_CARRY 0b0000000000010000
@@ -43,7 +43,6 @@ enum CPU_Opcode_Prefix
 	PREFIX_SS = 0x36,
 	PREFIX_DS = 0x3E,
 };
-
 
 enum CPU_Opcode
 {
