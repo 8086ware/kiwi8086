@@ -711,6 +711,39 @@ void cpu_exec(Sys8086* sys)
 
 			break;
 		}
+		case CLC:
+		{
+			sys->cpu.flag.whole &= ~FLAG_CARRY;
+			ip_increase = 1;
+			break;
+		}
+		case CLD:
+		{
+			sys->cpu.flag.whole &= ~FLAG_DIRECTION;
+			ip_increase = 1;
+			break;
+		}
+		case CLI:
+		{
+			sys->cpu.flag.whole &= ~FLAG_INTERRUPT;
+			ip_increase = 1;
+			break;
+		}
+		case CMC:
+		{
+			if(sys->cpu.flag.whole & FLAG_CARRY)
+			{
+				sys->cpu.flag.whole &= ~FLAG_CARRY;
+			}
+
+			else
+			{
+				sys->cpu.flag.whole |= FLAG_CARRY;
+			}
+
+			ip_increase = 1;
+			break;
+		}
 		case CMP_AL_IMM8: // 3C ii
 		{
 			cmp8(sys, sys->cpu.ax.low, read_address8(sys, cur_inst + 1, 0));
@@ -1453,6 +1486,24 @@ void cpu_exec(Sys8086* sys)
 		case RET_NEAR: // C3
 		{
 			pop(sys, &sys->cpu.ip.whole);
+			break;
+		}
+		case STC:
+		{
+			sys->cpu.flag.whole |= FLAG_CARRY;
+			ip_increase = 1;
+			break;
+		}
+		case STD:
+		{
+			sys->cpu.flag.whole |= FLAG_DIRECTION;
+			ip_increase = 1;
+			break;
+		}
+		case STI:
+		{
+			sys->cpu.flag.whole |= FLAG_INTERRUPT;
+			ip_increase = 1;
 			break;
 		}
 		case SUB_AL_IMM8: // 2C ii

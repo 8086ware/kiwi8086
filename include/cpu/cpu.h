@@ -72,6 +72,11 @@ enum CPU_Opcode
 	CALL_PTR16_16 = 0x9A,
 	CALL_M16_16 = 0x3, // Opcode group FF
 
+	CLC = 0xF8,
+	CLD = 0xFC,
+	CLI = 0xFA,
+	CMC = 0xF5,
+
 	CMP_AL_IMM8 = 0x3C,
 	CMP_AX_IMM16 = 0x3D,
 	CMP_RM8_IMM8 = 0x7, // Opcode group 80
@@ -195,6 +200,10 @@ enum CPU_Opcode
 	SHR_RM8_CL = 0x5, // Opcode group D2
 	SHR_RM16_1 = 0x5, // Opcode group D1
 	SHR_RM16_CL = 0x5, // Opcode group D3
+
+	STC = 0xF9,
+	STD = 0xFD,
+	STI = 0xFB,
 
 	SUB_AL_IMM8 = 0x2C,
 	SUB_AX_IMM16 = 0x2D,
