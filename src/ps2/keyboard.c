@@ -122,7 +122,7 @@ void ps2_keyboard(Sys8086* sys, SDL_Event event)
         case SDL_SCANCODE_V:
         {
             ps2_keyboard_scancode = 0x2F;
-        break;
+            break;
         }
         case SDL_SCANCODE_W:
         {
@@ -252,7 +252,7 @@ void ps2_keyboard(Sys8086* sys, SDL_Event event)
         }
 
         sys->ps2.output_buffer = ps2_keyboard_scancode;
-        sys->ps2.status_reg |= PS2_OUTPUT_BUFFER; // Output is available
+        sys->ps2.status_reg |= PS2_STATUS_OUTPUT_BUFFER_FLAG; // Output is available
         sys->pic_master.irr |= 1 << PIC_IRQ_KEYBOARD;
     }
 }
