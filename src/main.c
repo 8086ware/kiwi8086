@@ -297,9 +297,9 @@ int main(int argc, char** argv) {
 
 	while (event.type != SDL_EVENT_QUIT) // X button on window
 	{
-		printf("\x1b[HAX=%x, BX=%x, CX=%x, DX=%x, CS=%x, DS=%x, ES=%x, SS=%x, IP=%x, SP=%x, FLAGS=%x\n", sys->cpu.ax.whole, sys->cpu.bx.whole, sys->cpu.cx.whole, sys->cpu.dx.whole, sys->cpu.cs.whole, sys->cpu.ds.whole, sys->cpu.es.whole, sys->cpu.ss.whole, sys->cpu.ip.whole, sys->cpu.sp.whole, sys->cpu.flag.whole);
+		printf("\x1b[H[AX=%x, BX=%x, CX=%x, DX=%x, CS=%x, DS=%x, ES=%x, SS=%x, IP=%x, SP=%x, FLAGS=%x]\n", sys->cpu.ax.whole, sys->cpu.bx.whole, sys->cpu.cx.whole, sys->cpu.dx.whole, sys->cpu.cs.whole, sys->cpu.ds.whole, sys->cpu.es.whole, sys->cpu.ss.whole, sys->cpu.ip.whole, sys->cpu.sp.whole, sys->cpu.flag.whole);
 		
-		printf("Memory around CS:IP: ");
+		printf("[Memory around CS IP: ");
 		
 		const int max_mem_print = 11;
 
@@ -317,6 +317,7 @@ int main(int argc, char** argv) {
 		}
 
 		cpu_exec(sys);
+		ps2_keyboard(sys, event);
 
 		SDL_SetRenderDrawColor(win_render, 0, 0, 0, SDL_ALPHA_OPAQUE);
 		SDL_RenderClear(win_render);
