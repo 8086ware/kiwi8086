@@ -7,7 +7,7 @@ uint8_t handle_ps2_controller_port(Sys8086* sys, uint16_t port, uint8_t value, _
 	// if read, that means its from read_address, if !read, it means its from write address
 	switch(port)
 	{
-	case PS2_STATUS_COMMAND_REG:
+	case PS2_STATUS_COMMAND_REG_PORT:
 	{
 		if(read)
 		{
@@ -21,7 +21,7 @@ uint8_t handle_ps2_controller_port(Sys8086* sys, uint16_t port, uint8_t value, _
 			case 0xAA:
 			{
 				sys->ps2.output_buffer = 0x55;
-				sys->ps2.status_reg |= PS2_OUTPUT_BUFFER;
+				sys->ps2.status_reg |= PS2_STATUS_OUTPUT_BUFFER_FLAG;
 				break;
 			}
 			}
@@ -34,7 +34,7 @@ uint8_t handle_ps2_controller_port(Sys8086* sys, uint16_t port, uint8_t value, _
 	{
 		if(read)
 		{
-			sys->ps2.status_reg &= ~PS2_OUTPUT_BUFFER;
+			sys->ps2.status_reg &= ~PS2_STATUS_OUTPUT_BUFFER_FLAG;
 			return sys->ps2.output_buffer;
 		}
 		break;
