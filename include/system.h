@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "cpu/cpu.h"
 #include <stdio.h>
+#include "display/crtc.h"
 #include "display/mda.h"
 #include "pic.h"
 #include "ps2/controller.h"
@@ -21,11 +22,13 @@
 
 typedef struct Sys8086
 {
+	Crt_controller crtc;
 	MDA display;
 	uint8_t* memory;
 	CPU cpu;
 	Pic pic_master;
 	Pic pic_slave;
+	PS2_Controller ps2;
 } Sys8086;
 
 Sys8086* init_sys(FILE* image, FILE* bios_rom);
