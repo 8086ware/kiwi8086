@@ -11,7 +11,7 @@
 
 uint8_t calc_modrm_byte(Sys8086* sys, Register* data_seg, int instruction_address, void** reg, void** regmem, void* imm, _Bool word, _Bool imm_word, _Bool sreg)
 {
-	uint8_t modrm = sys->memory[instruction_address + 1];
+	uint8_t modrm = read_address8(sys, instruction_address + 1, 0);
 
 	// modrm == 0b10'000'000
 
@@ -55,14 +55,12 @@ uint8_t calc_modrm_byte(Sys8086* sys, Register* data_seg, int instruction_addres
 		{
 			if (imm_word)
 			{
-				uint16_t* imm_ptr = &sys->memory[instruction_address + imm_position];
-
-				*(uint16_t*)imm = *imm_ptr;
+				*(uint16_t*)imm = read_address16(sys, instruction_address + imm_position, 0);
 			}
 
 			else
 			{
-				*(uint8_t*)imm = sys->memory[instruction_address + imm_position];
+				*(uint8_t*)imm = read_address8(sys, instruction_address + imm_position, 0);
 			}
 		}
 
@@ -70,14 +68,12 @@ uint8_t calc_modrm_byte(Sys8086* sys, Register* data_seg, int instruction_addres
 
 		if (mod_val == 0b01)
 		{
-			*(uint8_t*)regmem += sys->memory[instruction_address + displacement_position];
+			*(uint8_t*)regmem += read_address8(sys, instruction_address + displacement_position, 0);
 		}
 
 		else if (mod_val == 0b10)
 		{
-			uint16_t* displacement_ptr = &sys->memory[instruction_address + displacement_position];
-
-			*(uint16_t*)regmem += *displacement_ptr;
+			*(uint16_t*)regmem += read_address16(sys, instruction_address + displacement_position, 0);
 		}
 
 		// Add registers to rmmem
@@ -118,9 +114,7 @@ uint8_t calc_modrm_byte(Sys8086* sys, Register* data_seg, int instruction_addres
 		{
 			if (mod_val == 0)
 			{
-				uint16_t* displacement_ptr = &sys->memory[instruction_address + displacement_position];
-
-				*(uint16_t*)regmem += *displacement_ptr;
+				*(uint16_t*)regmem += read_address16(sys, instruction_address + displacement_position, 0);;
 			}
 
 			else
@@ -137,7 +131,7 @@ uint8_t calc_modrm_byte(Sys8086* sys, Register* data_seg, int instruction_addres
 		}
 		}
 
-		void* real_regmem_memory_address = &(sys->memory[seg_mem(data_seg->whole, *regmem)]);
+		void* real_regmem_memory_address = sys->memory + seg_mem(data_seg->whole, *(uint16_t*)regmem);
 		*regmem = real_regmem_memory_address;
 	}
 
@@ -149,14 +143,12 @@ uint8_t calc_modrm_byte(Sys8086* sys, Register* data_seg, int instruction_addres
 		{
 			if (imm_word)
 			{
-				uint16_t* imm_ptr = &sys->memory[instruction_address + imm_position];
-
-				*(uint16_t*)imm = *imm_ptr;
+				*(uint16_t*)imm = read_address16(sys, instruction_address + imm_position, 0);
 			}
 
 			else
 			{
-				*(uint8_t*)imm = sys->memory[instruction_address + imm_position];
+				*(uint8_t*)imm = read_address8(sys, instruction_address + imm_position, 0);
 			}
 		}
 
