@@ -85,7 +85,10 @@ Sys8086* init_sys(FILE* image, FILE* bios_rom)
 		fread(&sys->memory[MAX_MEMORY_8086 - bios_size], sizeof(uint8_t), bios_size, bios_rom);
 	}
 
-	fread(&sys->memory[0x7c00], sizeof(uint8_t), 512, image);
+	else 
+	{
+		fread(&sys->memory[0x7c00], sizeof(uint8_t), 512, image);
+	}
 
 	return sys;
 }
