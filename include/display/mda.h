@@ -1,14 +1,13 @@
-#ifndef CGA_H
-#define CGA_H
+#ifndef MDA_H
+#define MDA_H
 
-#include <stdint.h>
-
+#define MDA_ADDRESS 0xB000
 #define MDA_RAM_SIZE 4096
 
 enum MDA_Port
 {
-	MDA_MODE_CONTROL_REGISTER = 0x3B8,
-	MDA_STATUS_REGISTER = 0x3BA,
+	MDA_MODE_CONTROL_REGISTER_PORT = 0x3B8,
+	MDA_STATUS_REGISTER_PORT = 0x3BA,
 };
 
 typedef struct MDA 
