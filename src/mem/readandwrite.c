@@ -89,9 +89,9 @@ uint8_t read_address8(Sys8086* sys, uint32_t address, _Bool port)
 
 	else // normal address space (physical ram)
 	{
-		if(address >= 0xB0000 && address <= 0xB0000 + (80 * 25 * 2))
+		if(address >= MDA_ADDRESS && address <= MDA_ADDRESS + MDA_RAM_SIZE)
 		{
-			return sys->display.ram[address - 0xB0000];
+			return sys->display.ram[address - MDA_ADDRESS];
 		}
 
 		switch (address)
