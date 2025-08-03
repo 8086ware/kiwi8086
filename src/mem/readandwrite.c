@@ -15,10 +15,24 @@ void write_address8(Sys8086* sys, uint32_t address, uint8_t value, _Bool port)
 	{
 		switch(address)
 		{
-			case 0xE9:
-			{
-				printf("-------------PORT 0xE9 HACK:%c\n", value);
-			}
+		case PS2_DATA_PORT:
+		case PS2_STATUS_COMMAND_REG_PORT:
+		{
+			handle_ps2_controller_port(sys, address, value, 0);
+			break;
+		}
+		case PIC_MASTER_COMMAND_PORT:
+		case PIC_SLAVE_COMMAND_PORT:
+		case PIC_MASTER_DATA_PORT:
+		case PIC_SLAVE_DATA_PORT:
+		{
+			handle_pic_port(sys, address, value, 0);
+			break;
+		}
+		case 0xE9:
+		{
+			printf("-------------PORT 0xE9 HACK:%c\n", value);
+		}
 		}
 	}
 
@@ -56,24 +70,19 @@ uint8_t read_address8(Sys8086* sys, uint32_t address, _Bool port)
 	{
 		switch (address)
 		{
-		// For pic ports, return the interrupt mask register if no command byte
-		case PIC_MASTER_DATA:
+		case PS2_DATA_PORT:
+		case PS2_STATUS_COMMAND_REG_PORT:
 		{
-			if (!sys->pic_master.command)
-			{
-				return sys->pic_master.imr;
-			}
+			return handle_ps2_controller_port(sys, address, 0, 1);
+			break;
 		}
-		case PIC_SLAVE_DATA:
+		case PIC_MASTER_COMMAND_PORT:
+		case PIC_SLAVE_COMMAND_PORT:
+		case PIC_MASTER_DATA_PORT:
+		case PIC_SLAVE_DATA_PORT:
 		{
-			if (!sys->pic_slave.command)
-			{
-				return sys->pic_slave.imr;
-			}
-		}
-		case MDA_STATUS_REGISTER:
-		{
-			return sys->display.status_reg;
+			return handle_pic_port(sys, address, 0, 1);
+			break;
 		}
 		}
 	}
