@@ -1422,6 +1422,12 @@ void cpu_exec(Sys8086* sys)
 			ip_increase = 1;
 			break;
 		}
+		case PUSHF:
+		{
+			push(sys, sys->cpu.flag.whole);
+			ip_increase = 1;
+			break;
+		}
 		case POP_RM16: // 8F mm dd dd
 		{
 			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
@@ -1474,6 +1480,12 @@ void cpu_exec(Sys8086* sys)
 
 			pop(sys, reg);
 
+			ip_increase = 1;
+			break;
+		}
+		case POPF:
+		{
+			pop(sys, &sys->cpu.flag.whole);
 			ip_increase = 1;
 			break;
 		}

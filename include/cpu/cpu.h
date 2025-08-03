@@ -175,10 +175,12 @@ enum CPU_Opcode
 	PUSH_R16 = 0x50,
 	PUSH_RM16 = 0x6, // Opcode group FF
 	PUSH_SREG = 0x6,
+	PUSHF = 0x9C,
 
 	POP_R16 = 0x58,
 	POP_RM16 = 0x8F,
 	POP_SREG = 0x07,
+	POPF = 0x9D,
 
 	RET_NEAR = 0xC3,
 	RET_FAR = 0xCB,
