@@ -17,9 +17,6 @@ typedef struct MDA
 	uint8_t status_reg;
 
 	uint8_t ram[MDA_RAM_SIZE];
-
-	// CRTC registers (included here)
-	uint16_t cursor_address; 
 } MDA;
 
 #endif
