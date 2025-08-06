@@ -39,7 +39,7 @@ void write_address8(Sys8086* sys, uint32_t address, uint8_t value, _Bool port)
 
 	else // normal address space (physical ram)
 	{
-		if(address >= 0xB0000 && address <= 0xB0000 + (80 * 25 * 2))
+		if(address >= MDA_ADDRESS && address <= MDA_ADDRESS + MDA_RAM_SIZE)
 		{
 			sys->display.ram[address - 0xB0000] = value;
 		}
