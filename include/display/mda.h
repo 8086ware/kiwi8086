@@ -1,7 +1,7 @@
 #ifndef MDA_H
 #define MDA_H
 
-#define MDA_ADDRESS 0xB000
+#define MDA_ADDRESS 0xB0000
 #define MDA_RAM_SIZE 4096
 
 enum MDA_Port
