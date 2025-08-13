@@ -14,7 +14,7 @@ void cpu_exec(Sys8086* sys)
 			// This if statement chain is based on the interrupt priority handling
 
 			int irq_to_handle = 0;
-			
+
 			for(int i = 0; i < 8; i++)
 			{
 				if((sys->pic_master.irr >> i) & 0x1)
@@ -1150,7 +1150,7 @@ void cpu_exec(Sys8086* sys)
 		{
 			uint16_t moffs16 = read_address16(sys, cur_inst + 1, 0);
 			uint8_t moffs16_value = read_address8(sys, seg_mem(data_seg->whole, moffs16), 0);
-			mov16(sys, &sys->cpu.ax.whole, &moffs16_value);
+			mov16(sys, &sys->cpu.ax.whole, (uint16_t*)&moffs16_value);
 			ip_increase = 3;
 			break;
 		}
