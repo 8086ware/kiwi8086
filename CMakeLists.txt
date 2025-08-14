@@ -14,3 +14,7 @@ target_link_libraries(kiwi8086 PUBLIC SDL3::SDL3)
 
 target_include_directories(kiwi8086 PUBLIC include)
 
+enable_language(ASM_NASM)
+
+add_executable(test.com test.asm)
+target_link_options(test.com PUBLIC -Ttext=0x7c00 --oformat=binary)
