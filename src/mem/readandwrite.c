@@ -104,10 +104,13 @@ uint8_t read_address8(Sys8086* sys, uint32_t address, _Bool port)
 		}
 		}
 	}
+
+	return 0;
 }
 
 uint16_t read_address16(Sys8086* sys, uint32_t address, _Bool port)
 {
 	uint16_t value = read_address8(sys, address, port);
 	value |= (uint16_t)read_address8(sys, address + 1, port) << 8;
+	return value;
 }
