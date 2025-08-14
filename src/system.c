@@ -1,6 +1,7 @@
 #include "system.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include "memory.h"
 
 Sys8086* init_sys(FILE* image, FILE* bios_rom)
 {
@@ -11,12 +12,7 @@ Sys8086* init_sys(FILE* image, FILE* bios_rom)
 		return NULL;
 	}
 
-	sys->memory = malloc(sizeof(uint8_t) * MAX_MEMORY_8086);
-
-	if (sys->memory == NULL)
-	{
-		return NULL;
-	}
+	memset(sys, 0, sizeof(Sys8086));
 
 	if(bios_rom == NULL)
 	{
@@ -85,6 +81,10 @@ Sys8086* init_sys(FILE* image, FILE* bios_rom)
 	
 	sys->display.crtc.cursor_start_scan_line = 6;
 	sys->display.crtc.cursor_end_scan_line = 8;
+
+	// init memory
+
+	memset(sys->memory, 0, MAX_MEMORY_8086);
 
 	// init pic
 	sys->pic_master.vector_offset = 0x20;
