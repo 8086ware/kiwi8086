@@ -4,9 +4,10 @@
 #include "pic.h"
 #include <stdio.h>
 #include "ps2/controller.h"
+#include "display/cga.h"
 
 void write_address8(Sys8086* sys, uint32_t address, uint8_t value, _Bool port)
-{	
+{
 	if (address >= MAX_MEMORY_8086)
 	{
 		return;
@@ -33,15 +34,29 @@ void write_address8(Sys8086* sys, uint32_t address, uint8_t value, _Bool port)
 		case 0xE9:
 		{
 			printf("-------------PORT 0xE9 HACK:%c\n", value);
+			break;
+		}
+		case CGA_MODE_CONTROL_REGISTER_PORT:
+		case CGA_COLOR_CONTROL_REGISTER_PORT:
+		case CGA_STATUS_REGISTER_PORT:
+		{
+			handle_cga_port(sys, address, value, 0);
+			break;
+		}
+		case CRTC_INDEX_REGISTER_PORT:
+		case CRTC_DATA_REGISTER_PORT:
+		{
+			handle_crtc_port(sys, address, value, 0);
+			break;
 		}
 		}
 	}
 
-	else // normal address space (physical ram)
+	else // normal address space
 	{
-		if(address >= MDA_ADDRESS && address <= MDA_ADDRESS + MDA_RAM_SIZE)
+		if(address >= CGA_ADDRESS && address <= CGA_ADDRESS + CGA_RAM_SIZE)
 		{
-			sys->display.ram[address - 0xB0000] = value;
+			sys->display.cga.ram[address - CGA_ADDRESS] = value;
 		}
 
 		switch (address)
@@ -85,14 +100,26 @@ uint8_t read_address8(Sys8086* sys, uint32_t address, _Bool port)
 			return handle_pic_port(sys, address, 0, 1);
 			break;
 		}
+		case CGA_MODE_CONTROL_REGISTER_PORT:
+		case CGA_COLOR_CONTROL_REGISTER_PORT:
+		case CGA_STATUS_REGISTER_PORT:
+		{
+			return handle_cga_port(sys, address, 0, 1);
+			break;
+		}
+		case CRTC_INDEX_REGISTER_PORT:
+		case CRTC_DATA_REGISTER_PORT:
+		{
+			return handle_crtc_port(sys, address, 0, 1);
+		}
 		}
 	}
 
-	else // normal address space (physical ram)
+	else // normal address space
 	{
-		if(address >= MDA_ADDRESS && address <= MDA_ADDRESS + MDA_RAM_SIZE)
+		if(address >= CGA_ADDRESS && address <= CGA_ADDRESS + CGA_RAM_SIZE)
 		{
-			return sys->display.ram[address - MDA_ADDRESS];
+			return sys->display.cga.ram[address - CGA_ADDRESS];
 		}
 
 		switch (address)

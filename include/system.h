@@ -4,8 +4,7 @@
 #include <stdint.h>
 #include "cpu/cpu.h"
 #include <stdio.h>
-#include "display/crtc.h"
-#include "display/mda.h"
+#include "display/display.h"
 #include "pic.h"
 #include "ps2/controller.h"
 
@@ -22,8 +21,7 @@
 
 typedef struct Sys8086
 {
-	Crt_controller crtc;
-	MDA display;
+	Display display;
 	uint8_t* memory;
 	CPU cpu;
 	Pic pic_master;
@@ -36,5 +34,9 @@ void cpu_exec(Sys8086* sys);
 uint8_t calc_modrm_byte(Sys8086* sys, Register* data_seg, int instruction_address, void** reg, void** regmem, void* imm, _Bool word, _Bool imm_word, _Bool sreg);
 uint8_t handle_ps2_controller_port(Sys8086* sys, uint16_t port, uint8_t value, _Bool read);
 uint8_t handle_pic_port(Sys8086* sys, uint16_t port, uint8_t value, _Bool read);
+uint8_t handle_cga_port(Sys8086* sys, uint16_t port, uint8_t value, _Bool read);
+uint8_t handle_crtc_port(Sys8086* sys, uint16_t port, uint8_t value, _Bool read);
+
+void display_render(Sys8086* sys);
 
 #endif

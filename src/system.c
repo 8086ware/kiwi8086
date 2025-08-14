@@ -32,25 +32,59 @@ Sys8086* init_sys(FILE* image, FILE* bios_rom)
 		sys->cpu.ip.whole = 0x0;
 	}
 
-	// init mda
+	// init display and palettes
+	// init cga
 	
-	sys->display.mode_ctrl_reg = 0b00011001;
-	sys->display.status_reg = 0b00001001;
+	sys->display.cga.color_ctrl_reg = 0;
+	sys->display.cga.mode_ctrl_reg = 0;
+
+	sys->display.surface = NULL;
+
+	SDL_CreateWindowAndRenderer("kiwi8086", 800, 600, SDL_WINDOW_RESIZABLE, &sys->display.win, &sys->display.win_render); // physical CGA window
+
+	SDL_Color color_4bit[16];
+
+	for(int i = 0; i < 16; i++)
+	{
+		color_4bit[i] = index_4bit_palette(i);
+	}
+
+	sys->display.palette_4bit = SDL_CreatePalette(16);
+	SDL_SetPaletteColors(sys->display.palette_4bit, color_4bit, 0, 16);
+
+	SDL_Color color_1bit[2] = {{0, 0, 0, 0}, {0xFF, 0xFF, 0xFF, 0xFF}};
+	sys->display.palette_1bit = SDL_CreatePalette(2);
+	SDL_SetPaletteColors(sys->display.palette_1bit, color_1bit, 0, 2);
+
+	SDL_Color color_2bit_0[4];
+
+	for(int i = 0; i < 4; i++)
+	{
+		color_2bit_0[i] = index_cga_palette_0(i, 0);
+	}
+
+	sys->display.cga_palette_0 = SDL_CreatePalette(4);
+	SDL_SetPaletteColors(sys->display.cga_palette_0, color_2bit_0, 0, 4);
+
+	SDL_Color color_2bit_1[4];
+
+	for(int i = 0; i < 4; i++)
+	{
+		color_2bit_1[i] = index_cga_palette_1(i, 0);
+	}
+
+	sys->display.cga_palette_1 = SDL_CreatePalette(4);
+	SDL_SetPaletteColors(sys->display.cga_palette_1, color_2bit_1, 0, 4);
+
+	memset(sys->display.cga.ram, 0, CGA_RAM_SIZE);
 
 	// init crtc
 
-	sys->crtc.cursor_address = 0;
-
-	for (int i = 0; i < MDA_RAM_SIZE; i++)
-	{
-		sys->display.ram[i] = 0;
-	}
-
-	// init memory
-	for (int i = 0; i < MAX_MEMORY_8086; i++)
-	{
-		sys->memory[i] = 0;
-	}
+	sys->display.crtc.start_address = 0;
+	sys->display.crtc.cursor_address = 0;
+	
+	sys->display.crtc.cursor_start_scan_line = 6;
+	sys->display.crtc.cursor_end_scan_line = 8;
 
 	// init pic
 	sys->pic_master.vector_offset = 0x20;
