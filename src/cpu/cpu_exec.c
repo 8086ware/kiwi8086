@@ -56,6 +56,8 @@ void cpu_exec(Sys8086* sys)
 			push(sys, sys->cpu.cs.whole);
 			push(sys, sys->cpu.ip.whole);
 
+			sys->cpu.flag.whole &= ~FLAG_INTERRUPT;
+
 			uint16_t interrupt_offset = read_address16(sys, seg_mem(0, irq_vector_offset), 0);
 			uint16_t interrupt_segment = read_address16(sys, seg_mem(0, irq_vector_offset) + 2, 0);
 
