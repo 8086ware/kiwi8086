@@ -7,7 +7,7 @@ void cpu_modify_flag_carry(CPU* cpu, uint16_t old_val, uint16_t new_val, _Bool w
 
 	if (word)
 	{
-		for (int i = 0; i <= 16; i++)
+		for (int i = 0; i < 16; i++)
 		{
 			if (((old_val << i) & 0b1000000000000000) == 0b1000000000000000)
 			{
@@ -25,7 +25,7 @@ void cpu_modify_flag_carry(CPU* cpu, uint16_t old_val, uint16_t new_val, _Bool w
 
 	else
 	{
-		for (int i = 0; i <= 8; i++)
+		for (int i = 0; i < 8; i++)
 		{
 			if (((old_val8 << i) & 0b10000000) == 0b10000000)
 			{
@@ -49,7 +49,7 @@ void cpu_modify_flag_parity(CPU* cpu, uint8_t val)
 {
 	int bit_amount = 0;
 
-	for (int i = 0; i <= 8; i++)
+	for (int i = 0; i < 8; i++)
 	{
 		if (((val << i) & 0b10000000) == 0b10000000)
 		{
