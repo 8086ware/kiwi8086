@@ -1,8 +1,8 @@
-#ifndef MDA_H
-#define MDA_H
+#ifndef CGA_H
+#define CGA_H
 
-#define MDA_ADDRESS 0xB0000
-#define MDA_RAM_SIZE 4096
+#define CGA_ADDRESS 0xB8000
+#define CGA_RAM_SIZE 0x4000 // 16k of ram
 
 enum MDA_Port
 {
@@ -10,12 +10,12 @@ enum MDA_Port
 	MDA_STATUS_REGISTER_PORT = 0x3BA,
 };
 
-typedef struct MDA 
+typedef struct CGA 
 {
 	uint8_t mode_ctrl_reg;
-	uint8_t status_reg;
+	uint8_t color_ctrl_reg;
 
-	uint8_t ram[MDA_RAM_SIZE];
-} MDA;
+	uint8_t ram[CGA_RAM_SIZE];
+} CGA;
 
 #endif
