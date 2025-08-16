@@ -715,6 +715,7 @@ void cpu_exec(Sys8086* sys)
 			reg = reg16_index(&sys->cpu, reg_code);
 
 			dec16(sys, reg);
+			ip_increase = 1;
 			break;
 		}
 		case HLT:
