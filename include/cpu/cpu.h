@@ -21,6 +21,8 @@
 //REG8/16 = A 16/8 bit register
 //PTR16 = 16 bit segment (far jump/call)
 
+#define CPU_NANOSECONDS_PER_CYCLE 200
+
 enum CPU_Group_Opcode
 {
 	GROUP_OPCODE_80 = 0x80,
