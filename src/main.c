@@ -26,7 +26,6 @@ int main(int argc, char** argv) {
 	
 	SDL_Event event = { 0 };
 
-	int instructions = 0;
 	uint64_t last_calc_tick = 0;
 
 	while (event.type != SDL_EVENT_QUIT) // X button on window
@@ -44,15 +43,10 @@ int main(int argc, char** argv) {
 		if(now_tick - last_calc_tick >= 1000)
 		{
 			char title[64];
-			sprintf(title, "kiwi8086 - IPS: %d", instructions);
+			sprintf(title, "kiwi8086 - IPS: %d", sys->cpu.instructions);
 			SDL_SetWindowTitle(sys->display.win, title);
 			last_calc_tick = now_tick;
-			instructions = 0;
-		}
-
-		else
-		{
-			instructions++;
+			sys->cpu.instructions = 0;
 		}
 		
 		SDL_PollEvent(&event); // SDL_PollEvent to poll and not wait
