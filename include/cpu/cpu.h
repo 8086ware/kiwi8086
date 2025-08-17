@@ -253,6 +253,8 @@ typedef union Register
 
 typedef struct CPU
 {
+	uint64_t last_tick;
+
 	_Bool prev_byte_success;
 	_Bool halted;
 
@@ -290,6 +292,7 @@ typedef struct CPU
 	// Status flag
 
 	Register flag;
+	int instructions;
 } CPU;
 
 uint16_t* segment_reg_index(CPU* cpu, int index);
