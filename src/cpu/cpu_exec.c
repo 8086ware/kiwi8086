@@ -5,8 +5,15 @@
 
 void cpu_exec(Sys8086* sys)
 {
+	uint64_t now_ticks = SDL_GetTicksNS();
+
+	int instructions_to_do = (now_ticks - sys->cpu.last_tick) / CPU_NANOSECONDS_PER_CYCLE;
 	int irq_vector_offset = 0;
 
+	sys->cpu.last_tick = now_ticks;
+	for(int i = 0; i < instructions_to_do; i++)
+	{
+	sys->cpu.instructions++; // measuring ips
 	if(sys->cpu.flag.whole & FLAG_INTERRUPT)
 	{
 		if (sys->pic_master.irr != 0 || sys->pic_slave.irr != 0)
@@ -1596,5 +1603,6 @@ void cpu_exec(Sys8086* sys)
 
 		sys->cpu.prev_byte_success = 1;
 		sys->cpu.ip.whole += ip_increase;
+	}
 	}
 }
