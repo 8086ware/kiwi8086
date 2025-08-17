@@ -49,6 +49,14 @@ void write_address8(Sys8086* sys, uint32_t address, uint8_t value, _Bool port)
 			handle_crtc_port(sys, address, value, 0);
 			break;
 		}
+		case PIT_CHANNEL_0_PORT:
+		case PIT_CHANNEL_1_PORT:
+		case PIT_CHANNEL_2_PORT:
+		case PIT_MODE_COMMAND_REG_PORT:
+		{
+			handle_pit_port(sys, address, value, 0);
+			break;
+		}
 		}
 	}
 
@@ -111,6 +119,14 @@ uint8_t read_address8(Sys8086* sys, uint32_t address, _Bool port)
 		case CRTC_DATA_REGISTER_PORT:
 		{
 			return handle_crtc_port(sys, address, 0, 1);
+		}
+		case PIT_CHANNEL_0_PORT:
+		case PIT_CHANNEL_1_PORT:
+		case PIT_CHANNEL_2_PORT:
+		case PIT_MODE_COMMAND_REG_PORT:
+		{
+			return handle_pit_port(sys, address, 0, 1);
+			break;
 		}
 		}
 	}

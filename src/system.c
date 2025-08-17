@@ -109,6 +109,11 @@ Sys8086* init_sys(FILE* image, FILE* bios_rom)
 
 	sys->cpu.flag.whole = 0;
 
+	// init pit
+	
+	sys->pit.timers[0].reload_value = 0;
+	sys->pit.timers[0].current_count = sys->pit.timers[0].reload_value;
+
 	// load bios if exist and load bootloader raw if not
 	if(bios_rom != NULL)
 	{
