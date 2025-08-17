@@ -30,13 +30,10 @@ int main(int argc, char** argv) {
 
 	while (event.type != SDL_EVENT_QUIT) // X button on window
 	{
-		cpu_exec(sys);
-		ps2_keyboard(sys, event);
-
-		if(SDL_GetTicks() % 16 == 0)
-		{
-			display_render(sys);
-		}
+		cpu_exec(sys); // fetch/decode/execute/store
+		ps2_keyboard(sys, event); // poll for ps2 keyboard events
+		pit_cycle(sys); // decrement PIT counter/do other pit stuff (fire irq 0)
+		display_render(sys); // Render CGA display
 
 		int now_tick = SDL_GetTicks();
 

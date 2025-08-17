@@ -18,6 +18,8 @@ typedef struct Display
 
 	CGA cga;
 	Crt_controller crtc;
+
+	uint64_t last_tick;
 } Display;
 
 SDL_Color index_cga_palette_0(uint8_t num, _Bool intensity);

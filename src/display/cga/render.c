@@ -8,6 +8,8 @@
 
 void display_render(Sys8086* sys)
 {
+    uint64_t now_tick = SDL_GetTicksNS();
+
     SDL_ClearSurface(sys->display.surface, 0, 0, 0, 0);
     
     SDL_Texture* screen_texture = NULL;
@@ -19,6 +21,8 @@ void display_render(Sys8086* sys)
 
     int bpp = 0;
 
+    if(now_tick - sys->display.last_tick >= 16666600)
+    {
     if(sys->display.cga.mode_ctrl_reg & CGA_MODE_CONTROL_VIDEO) // Is this thing on?
 	{
         if(sys->display.cga.mode_ctrl_reg & CGA_MODE_CONTROL_GRAPHICS)
@@ -124,10 +128,13 @@ void display_render(Sys8086* sys)
             }
         }
     }
-
+    
     screen_texture = SDL_CreateTextureFromSurface(sys->display.win_render, sys->display.surface);
     SDL_SetTextureScaleMode(screen_texture, SDL_SCALEMODE_NEAREST);
     SDL_RenderTexture(sys->display.win_render, screen_texture, NULL, NULL);
     SDL_RenderPresent(sys->display.win_render);
     SDL_DestroyTexture(screen_texture);
+
+    sys->display.last_tick = now_tick;
+    }
 }
