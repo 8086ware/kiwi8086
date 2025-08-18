@@ -23,7 +23,108 @@
 
 #define CPU_NANOSECONDS_PER_CYCLE 200
 
-enum CPU_Group_Opcode
+enum CPU_Group_Opcode_80
+{
+	ADD_RM8_IMM8 = 0x0,// Opcode group 80
+	OR_RM8_IMM8 = 0x1, // Opcode group 80
+	AND_RM8_IMM8 = 0x4, // Opcode group 80
+	SUB_RM8_IMM8 = 0x5, // Opcode group 80
+	XOR_RM8_IMM8 = 0x6, // Opcode group 80
+	CMP_RM8_IMM8 = 0x7, // Opcode group 80
+};
+
+enum CPU_Group_Opcode_81
+{
+	ADD_RM16_IMM16 = 0x0,// Opcode group 81
+	OR_RM16_IMM16 = 0x1, // Opcode group 81
+	AND_RM16_IMM16 = 0x4, // Opcode group 81
+	SUB_RM16_IMM16 = 0x5, // Opcode group 81
+	XOR_RM16_IMM16 = 0x6, // Opcode group 81
+	CMP_RM16_IMM16 = 0x7, // Opcode group 81
+};
+
+enum CPU_Group_Opcode_83
+{
+	ADD_RM16_IMM8 = 0x0, // Opcode group 83
+	OR_RM16_IMM8 = 0x1, // Opcode group 83
+	AND_RM16_IMM8 = 0x4, // Opcode group 83
+	SUB_RM16_IMM8 = 0x5, // Opcode group 83
+	XOR_RM16_IMM8 = 0x6, // Opcode group 83
+	CMP_RM16_IMM8 = 0x7, // Opcode group 83
+};
+
+enum CPU_Group_Opcode_D0
+{
+	SAL_RM8_1 = 0x4, // Opcode group D0
+	SHR_RM8_1 = 0x5, // Opcode group D0
+	SAR_RM8_1 = 0x7, // Opcode group D0
+};
+
+enum CPU_Group_Opcode_D1
+{
+	SAL_RM16_1 = 0x4, // Opcode group D1
+	SHR_RM16_1 = 0x5, // Opcode group D1
+	SAR_RM16_1 = 0x7, // Opcode group D1
+};
+
+enum CPU_Group_Opcode_D2
+{
+	SAL_RM8_CL = 0x4, // Opcode group D2
+	SHR_RM8_CL = 0x5, // Opcode group D2
+	SAR_RM8_CL = 0x7, // Opcode group D2
+};
+
+enum CPU_Group_Opcode_D3
+{
+	// Same as SHL
+	SAL_RM16_CL = 0x4, // Opcode group D3
+	SHR_RM16_CL = 0x5, // Opcode group D3
+	SAR_RM16_CL = 0x7, // Opcode group D3
+};
+
+enum CPU_Group_Opcode_F6
+{
+	TEST_RM8_IMM8 = 0x0, // Opcode group F6
+	NOT_RM8 = 0x2, // Opcode group F6
+	NEG_RM8 = 0x3, // Opcode group F6
+	MUL_RM8 = 0x4, // Opcode group F6
+};
+
+enum CPU_Group_Opcode_F7
+{
+	TEST_RM16_IMM16 = 0x0, // Opcode group F7
+	NOT_RM16 = 0x2, // Opcode group F7
+	NEG_RM16 = 0x3, // Opcode group F7
+	MUL_RM16 = 0x4, // Opcode group F7
+};
+
+enum CPU_Group_Opcode_FE
+{
+	INC_RM8 = 0x0, // Opcode group FE
+	DEC_RM8 = 0x1, // Opcode group FE
+};
+
+enum CPU_Group_Opcode_FF
+{
+	INC_RM16 = 0x0, // Opcode group FF
+	DEC_RM16 = 0x1, // Opcode group FF
+	CALL_RM16 = 0x2, // Opcode group FF
+	CALL_M16_16 = 0x3, // Opcode group FF
+	JMP_RM16 = 0x4, // Opcode group FF
+	PUSH_RM16 = 0x6, // Opcode group FF
+};
+
+enum CPU_Opcode_Prefix
+{
+	PREFIX_ES = 0x26,
+	PREFIX_CS = 0x2E,
+	PREFIX_SS = 0x36,
+	PREFIX_DS = 0x3E,
+	PREFIX_REPNE = 0xF2,
+	PREFIX_REP_OR_REPE = 0xF3,
+};
+
+enum CPU_Opcode
 {
 	GROUP_OPCODE_80 = 0x80,
 	GROUP_OPCODE_81 = 0x81,
@@ -36,21 +137,7 @@ enum CPU_Group_Opcode
 	GROUP_OPCODE_F7 = 0xF7,
 	GROUP_OPCODE_FE = 0xFE,
 	GROUP_OPCODE_FF = 0xFF,
-};
 
-enum CPU_Opcode_Prefix
-{
-	PREFIX_ES = 0x26,
-	PREFIX_CS = 0x2E,
-	PREFIX_SS = 0x36,
-	PREFIX_DS = 0x3E,
-};
-
-enum CPU_Opcode
-{
-	ADD_RM8_IMM8 = 0x0,// Opcode group 80
-	ADD_RM16_IMM16 = 0x0,// Opcode group 81
-	ADD_RM16_IMM8 = 0x0, // Opcode group 83
 	ADD_RM8_R8 = 0x00,
 	ADD_RM16_R16 = 0x01,
 	ADD_R8_RM8 = 0x02,
@@ -60,18 +147,13 @@ enum CPU_Opcode
 
 	AND_AL_IMM8 = 0x24,
 	AND_AX_IMM16 = 0x25,
-	AND_RM8_IMM8 = 0x4, // Opcode group 80
-	AND_RM16_IMM16 = 0x4, // Opcode group 81
-	AND_RM16_IMM8 = 0x4, // Opcode group 83
 	AND_RM8_R8 = 0x20,
 	AND_RM16_R16 = 0x21,
 	AND_R8_RM8 = 0x22,
 	AND_R16_RM16 = 0x23,
 
 	CALL_REL16 = 0xE8,
-	CALL_RM16 = 0x2, // Opcode group FF
 	CALL_PTR16_16 = 0x9A,
-	CALL_M16_16 = 0x3, // Opcode group FF
 
 	CLC = 0xF8,
 	CLD = 0xFC,
@@ -80,17 +162,14 @@ enum CPU_Opcode
 
 	CMP_AL_IMM8 = 0x3C,
 	CMP_AX_IMM16 = 0x3D,
-	CMP_RM8_IMM8 = 0x7, // Opcode group 80
-	CMP_RM16_IMM16 = 0x7, // Opcode group 81
-	CMP_RM16_IMM8 = 0x7, // Opcode group 83
 	CMP_RM8_R8 = 0x38,
 	CMP_RM16_R16 = 0x39,
 	CMP_R8_RM8 = 0x3A,
 	CMP_R16_RM16 = 0x3B,
+	CMPSB = 0xA6,
+	CMPSW = 0xA7,
 
 	// Affects flag register
-	DEC_RM8 = 0x1, // Opcode group FE
-	DEC_RM16 = 0x1, // Opcode group FF
 	DEC_R16 = 0x48,
 
 	HLT = 0xF4,
@@ -101,8 +180,6 @@ enum CPU_Opcode
 	IN_AX_DX = 0xED,
 
 	// Affects flag register
-	INC_RM8 = 0x0, // Opcode group FE
-	INC_RM16 = 0x0, // Opcode group FF
 	INC_R16 = 0x40,
 
 	INT_IMM8 = 0xCD,
@@ -112,7 +189,6 @@ enum CPU_Opcode
 	// Affects flag register
 	JMP_REL8 = 0xEB,
 	JMP_REL16 = 0xE9,
-	JMP_RM16 = 0x4, // Opcode group FF
 	JMP_PTR16_16 = 0xEA,
 
 	JA_REL8 = 0x77,
@@ -137,6 +213,9 @@ enum CPU_Opcode
 	LOOPE_REL8 = 0xE1,
 	LOOPNE_REL8 = 0xE0,
 
+	LODSB = 0xAC,
+	LODSW = 0xAD,
+
 	MOV_RM8_R8 = 0x88,
 	MOV_RM16_R16 = 0x89,
 	MOV_R8_RM8 = 0x8A,
@@ -152,17 +231,11 @@ enum CPU_Opcode
 	MOV_RM8_IMM8 = 0xC6,
 	MOV_RM16_IMM16 = 0xC7,
 
-	MUL_RM8 = 0x4, // Opcode group F6
-	MUL_RM16 = 0x4, // Opcode group F7
-
-	NEG_RM8 = 0x3, // Opcode group F6
-	NEG_RM16 = 0x3, // Opcode group F7
+	MOVSB = 0xA4,
+	MOVSW = 0xA5,
 
 	OR_AL_IMM8 = 0x0C,
 	OR_AX_IMM16 = 0x0D,
-	OR_RM8_IMM8 = 0x1, // Opcode group 80
-	OR_RM16_IMM16 = 0x1, // Opcode group 81
-	OR_RM16_IMM8 = 0x1, // Opcode group 83
 	OR_RM8_R8 = 0x08,
 	OR_RM16_R16 = 0x09,
 	OR_R8_RM8 = 0x0A,
@@ -174,7 +247,6 @@ enum CPU_Opcode
 	OUT_DX_AX = 0xEF,
 
 	PUSH_R16 = 0x50,
-	PUSH_RM16 = 0x6, // Opcode group FF
 	PUSH_SREG = 0x6,
 	PUSHF = 0x9C,
 
@@ -188,31 +260,18 @@ enum CPU_Opcode
 	RET_NEAR_IMM16 = 0xC2,
 	RET_FAR_IMM16 = 0xCA,
 
-	// Same as SHL
-	SAL_RM8_1 = 0x4, // Opcode group D0
-	SAL_RM8_CL = 0x4, // Opcode group D2
-	SAL_RM16_1 = 0x4, // Opcode group D1
-	SAL_RM16_CL = 0x4, // Opcode group D3
-
-	SAR_RM8_1 = 0x7, // Opcode group D0
-	SAR_RM8_CL = 0x7, // Opcode group D2
-	SAR_RM16_1 = 0x7, // Opcode group D1
-	SAR_RM16_CL = 0x7, // Opcode group D3
-
-	SHR_RM8_1 = 0x5, // Opcode group D0
-	SHR_RM8_CL = 0x5, // Opcode group D2
-	SHR_RM16_1 = 0x5, // Opcode group D1
-	SHR_RM16_CL = 0x5, // Opcode group D3
+	SCASB = 0xAE,
+	SCASW = 0xAF,
 
 	STC = 0xF9,
 	STD = 0xFD,
 	STI = 0xFB,
 
+	STOSB = 0xAA,
+	STOSW = 0xAB,
+
 	SUB_AL_IMM8 = 0x2C,
 	SUB_AX_IMM16 = 0x2D,
-	SUB_RM8_IMM8 = 0x5, // Opcode group 80
-	SUB_RM16_IMM16 = 0x5, // Opcode group 81
-	SUB_RM16_IMM8 = 0x5, // Opcode group 83
 	SUB_RM8_R8 = 0x28,
 	SUB_RM16_R16 = 0x29,
 	SUB_R8_RM8 = 0x2A,
@@ -220,8 +279,6 @@ enum CPU_Opcode
 
 	TEST_AL_IMM8 = 0xA8,
 	TEST_AX_IMM16 = 0xA9,
-	TEST_RM8_IMM8 = 0x0, // Opcode group F6
-	TEST_RM16_IMM16 = 0x0, // Opcode group F7
 	TEST_RM8_R8 = 0x84,
 	TEST_RM16_R16 = 0x85,
 
@@ -231,9 +288,6 @@ enum CPU_Opcode
 
 	XOR_AL_IMM8 = 0x34,
 	XOR_AX_IMM16 = 0x35,
-	XOR_RM8_IMM8 = 0x6, // Opcode group 80
-	XOR_RM16_IMM16 = 0x6, // Opcode group 81
-	XOR_RM16_IMM8 = 0x6, // Opcode group 83
 	XOR_RM8_R8 = 0x30,
 	XOR_RM16_R16 = 0x31,
 	XOR_R8_RM8 = 0x32,
