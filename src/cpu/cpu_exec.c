@@ -658,7 +658,7 @@ void cpu_exec(Sys8086* sys)
 				case AND_R8_RM8:
 				{
 					ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-					and8(sys, reg, *(uint16_t*)regmem);
+					and8(sys, reg, *(uint8_t*)regmem);
 					break;
 				}
 				case AND_R16_RM16:
