@@ -93,6 +93,12 @@ void cpu_exec(Sys8086* sys)
 			void* regmem = NULL;
 
 			enum CPU_Opcode opcode = read_address8(sys, cur_inst, 0);
+			
+			if(opcode >= 0x60 && opcode <= 0x6F) // unused on 8086/8088, aliases for the jmp instructions
+			{
+				opcode += 0x10;
+			}
+
 			enum CPU_Opcode_Prefix opcode_prefix = read_address8(sys, cur_inst - 1, 0);
 
 			int times_exec_instruction = 1;
