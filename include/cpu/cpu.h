@@ -154,6 +154,8 @@ enum CPU_Opcode
 
 	CALL_REL16 = 0xE8,
 	CALL_PTR16_16 = 0x9A,
+	
+	CBW = 0x98,
 
 	CLC = 0xF8,
 	CLD = 0xFC,

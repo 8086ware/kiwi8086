@@ -683,6 +683,13 @@ void cpu_exec(Sys8086* sys)
 
 					break;
 				}
+				case CBW:
+				{
+					int16_t new_ax = sys->cpu.ax.low;
+					sys->cpu.ax.whole = new_ax;
+					ip_increase = 1;
+					break;
+				}
 				case CLC:
 				{
 					sys->cpu.flag.whole &= ~FLAG_CARRY;
