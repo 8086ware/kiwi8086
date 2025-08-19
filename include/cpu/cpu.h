@@ -362,4 +362,6 @@ void cpu_modify_flag_zero(CPU* cpu, uint16_t val);
 void cpu_modify_flag_sign(CPU* cpu, uint16_t val, _Bool word);
 void cpu_modify_flag_overflow(CPU* cpu, int16_t op1, int16_t op2, int16_t result, _Bool word);
 
+void cpu_reset(CPU* cpu);
+
 #endif
