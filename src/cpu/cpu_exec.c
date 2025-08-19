@@ -1286,8 +1286,8 @@ void cpu_exec(Sys8086* sys)
 				case MOV_AX_MOFFS16: // A1 dd dd
 				{
 					uint16_t moffs16 = read_address16(sys, cur_inst + 1, 0);
-					uint8_t moffs16_value = read_address8(sys, seg_mem(data_seg->whole, moffs16), 0);
-					mov16(sys, &sys->cpu.ax.whole, (uint16_t*)&moffs16_value);
+					uint16_t moffs16_value = read_address16(sys, seg_mem(data_seg->whole, moffs16), 0);
+					mov16(sys, &sys->cpu.ax.whole, &moffs16_value);
 					ip_increase = 3;
 					break;
 				}
