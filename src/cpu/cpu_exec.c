@@ -132,14 +132,9 @@ void cpu_exec(Sys8086* sys)
 					break;
 				}
 				case PREFIX_REPNE:
-				{
-					times_exec_instruction = sys->cpu.cx.whole;
-					break;
-				}
 				case PREFIX_REP_OR_REPE:
 				{
 					times_exec_instruction = sys->cpu.cx.whole;
-					zero_flag_check = 1;
 					break;
 				}
 				}
