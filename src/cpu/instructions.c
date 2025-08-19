@@ -288,6 +288,23 @@ void sal8(Sys8086* sys, int8_t* value, uint8_t amount)
 	}
 
 	(*value) <<= amount;
+
+	if(amount == 1)
+	{
+		if((*value & 0x80 && sys->cpu.flag.whole & FLAG_CARRY) || ((*value & 0x80) == 0 && (sys->cpu.flag.whole & FLAG_CARRY) == 0))
+		{
+			sys->cpu.flag.whole &= ~FLAG_OVERFLOW;
+		}
+
+		else
+		{
+			sys->cpu.flag.whole |= FLAG_OVERFLOW;
+		}
+	}
+
+	cpu_modify_flag_zero(&sys->cpu, (*value));
+	cpu_modify_flag_parity(&sys->cpu, (*value));
+	cpu_modify_flag_sign(&sys->cpu, (*value), 0);
 }
 
 void sar8(Sys8086* sys, int8_t* value, uint8_t amount)
@@ -302,7 +319,16 @@ void sar8(Sys8086* sys, int8_t* value, uint8_t amount)
 		sys->cpu.flag.whole &= ~FLAG_CARRY;
 	}
 
-	(*value) <<= amount;
+	(*value) >>= amount;
+
+	if(amount == 1)
+	{
+		sys->cpu.flag.whole &= ~FLAG_OVERFLOW;
+	}
+
+	cpu_modify_flag_zero(&sys->cpu, (*value));
+	cpu_modify_flag_parity(&sys->cpu, (*value));
+	cpu_modify_flag_sign(&sys->cpu, (*value), 0);
 }
 
 void shr8(Sys8086* sys, uint8_t* value, uint8_t amount)
@@ -317,7 +343,24 @@ void shr8(Sys8086* sys, uint8_t* value, uint8_t amount)
 		sys->cpu.flag.whole &= ~FLAG_CARRY;
 	}
 
-	(*value) <<= amount;
+	(*value) >>= amount;
+
+	if(amount == 1)
+	{
+		if(*value & 0x80)
+		{
+			sys->cpu.flag.whole |= FLAG_OVERFLOW;
+		}
+
+		else
+		{
+			sys->cpu.flag.whole &= ~FLAG_OVERFLOW;
+		}
+	}
+
+	cpu_modify_flag_zero(&sys->cpu, (*value));
+	cpu_modify_flag_parity(&sys->cpu, (*value));
+	cpu_modify_flag_sign(&sys->cpu, (*value), 0);
 }
 
 void sal16(Sys8086* sys, int16_t* value, uint8_t amount)
@@ -333,9 +376,26 @@ void sal16(Sys8086* sys, int16_t* value, uint8_t amount)
 	}
 
 	(*value) <<= amount;
+
+	if(amount == 1)
+	{
+		if((*value & 0x8000 && sys->cpu.flag.whole & FLAG_CARRY) || ((*value & 0x8000) == 0 && (sys->cpu.flag.whole & FLAG_CARRY) == 0))
+		{
+			sys->cpu.flag.whole &= ~FLAG_OVERFLOW;
+		}
+
+		else
+		{
+			sys->cpu.flag.whole |= FLAG_OVERFLOW;
+		}
+	}
+
+	cpu_modify_flag_zero(&sys->cpu, (*value));
+	cpu_modify_flag_parity(&sys->cpu, (*value));
+	cpu_modify_flag_sign(&sys->cpu, (*value), 1);
 }
 
-void sar16(Sys8086* sys, int8_t* value, uint8_t amount)
+void sar16(Sys8086* sys, int16_t* value, uint8_t amount)
 {
 	if(((*value >> (amount - 1)) & 0b0000000000000001))
 	{
@@ -347,11 +407,22 @@ void sar16(Sys8086* sys, int8_t* value, uint8_t amount)
 		sys->cpu.flag.whole &= ~FLAG_CARRY;
 	}
 
-	(*value) <<= amount;
+	(*value) >>= amount;
+
+	if(amount == 1)
+	{
+		sys->cpu.flag.whole &= ~FLAG_OVERFLOW;
+	}
+
+	cpu_modify_flag_zero(&sys->cpu, (*value));
+	cpu_modify_flag_parity(&sys->cpu, (*value));
+	cpu_modify_flag_sign(&sys->cpu, (*value), 1);
 }
 
 void shr16(Sys8086* sys, uint16_t* value, uint8_t amount)
 {
+	uint16_t old_val = *value;
+
 	if(((*value >> (amount - 1)) & 0b0000000000000001))
 	{
 		sys->cpu.flag.whole |= FLAG_CARRY;
@@ -362,7 +433,24 @@ void shr16(Sys8086* sys, uint16_t* value, uint8_t amount)
 		sys->cpu.flag.whole &= ~FLAG_CARRY;
 	}
 
-	(*value) <<= amount;
+	(*value) >>= amount;
+
+	if(amount == 1)
+	{
+		if(*value & 0x8000)
+		{
+			sys->cpu.flag.whole |= FLAG_OVERFLOW;
+		}
+
+		else
+		{
+			sys->cpu.flag.whole &= ~FLAG_OVERFLOW;
+		}
+	}
+
+	cpu_modify_flag_zero(&sys->cpu, (*value));
+	cpu_modify_flag_parity(&sys->cpu, (*value));
+	cpu_modify_flag_sign(&sys->cpu, (*value), 1);
 }
 
 void or8(Sys8086* sys, uint8_t* value, int8_t or)
