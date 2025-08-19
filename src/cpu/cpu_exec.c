@@ -1795,6 +1795,11 @@ void cpu_exec(Sys8086* sys)
 					break;
 				}
 				default:
+					if(opcode != PREFIX_ES && opcode != PREFIX_DS && opcode != PREFIX_CS && opcode != PREFIX_SS && opcode != PREFIX_REPNE && opcode != PREFIX_REP_OR_REPE)
+					{
+						printf("Unknown Opcode %x\n", opcode);
+					}
+
 					sys->cpu.prev_byte_success = 0;
 					sys->cpu.ip.whole++;
 					return;
