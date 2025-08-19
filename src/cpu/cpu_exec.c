@@ -1109,7 +1109,7 @@ void cpu_exec(Sys8086* sys)
 				}
 				case JP_REL8: // 7A ii // Same as JPE_REL8
 				{
-					if (sys->cpu.flag.whole & FLAG_OVERFLOW)
+					if (sys->cpu.flag.whole & FLAG_PARITY)
 					{
 						jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
 					}
