@@ -23,9 +23,7 @@ Sys8086* init_sys(FILE* image, FILE* bios_rom)
 
 	else
 	{
-		// Starting point of a normal reset 8086
-		sys->cpu.cs.whole = 0xFFFF;
-		sys->cpu.ip.whole = 0x0;
+		cpu_reset(&sys->cpu);
 	}
 
 	// init display and palettes
