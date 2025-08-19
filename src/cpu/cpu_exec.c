@@ -1056,7 +1056,8 @@ void cpu_exec(Sys8086* sys)
 
 					else
 					{
-						ip_increase += 2; }
+						ip_increase += 2; 
+					}
 
 					break;
 				}
