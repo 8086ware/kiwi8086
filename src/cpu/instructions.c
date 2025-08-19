@@ -110,6 +110,7 @@ void inc8(Sys8086* sys, uint8_t* value)
 	cpu_modify_flag_zero(&sys->cpu, *value);
 	cpu_modify_flag_parity(&sys->cpu, *value);
 	cpu_modify_flag_sign(&sys->cpu, *value, 0);
+	cpu_modify_flag_overflow(&sys->cpu, old_val, -1, *value, 0);
 }
 
 void dec8(Sys8086* sys, uint8_t* value)
@@ -122,6 +123,7 @@ void dec8(Sys8086* sys, uint8_t* value)
 	cpu_modify_flag_zero(&sys->cpu, *value);
 	cpu_modify_flag_parity(&sys->cpu, *value);
 	cpu_modify_flag_sign(&sys->cpu, *value, 0);
+	cpu_modify_flag_overflow(&sys->cpu, old_val, 1, *value, 0);
 }
 
 void inc16(Sys8086* sys, uint16_t* value)
@@ -134,6 +136,7 @@ void inc16(Sys8086* sys, uint16_t* value)
 	cpu_modify_flag_zero(&sys->cpu, *value);
 	cpu_modify_flag_parity(&sys->cpu, *value);
 	cpu_modify_flag_sign(&sys->cpu, *value, 1);
+	cpu_modify_flag_overflow(&sys->cpu, old_val, -1, *value, 1);
 }
 
 void dec16(Sys8086* sys, uint16_t* value)
@@ -146,6 +149,7 @@ void dec16(Sys8086* sys, uint16_t* value)
 	cpu_modify_flag_zero(&sys->cpu, *value);
 	cpu_modify_flag_parity(&sys->cpu, *value);
 	cpu_modify_flag_sign(&sys->cpu, *value, 1);
+	cpu_modify_flag_overflow(&sys->cpu, old_val, 1, *value, 1);
 }
 
 void cmp16(Sys8086* sys, uint16_t val1, uint16_t val2)
