@@ -28,6 +28,19 @@ enum Pic_IRQ
 	PIC_IRQ_HARD_DISK_CTRL2 = 15,
 };
 
+enum Pic_ICW // Tell this to each PIC.
+{
+	PIC_ICW1_ICW4 = 0x01,
+	PIC_ICW1_SINGLE = 0x02,
+	PIC_ICW1_INIT = 0x10, // imr cleared, irq 7 assigned priority 7, slave mode address is set to 7, status read set to irr
+
+	// ICW2 is the vector offsets
+	// ICW3 for setting the slave pic irq
+
+	ICW4_8086 = 0x01,
+	ICW4_AUTO = 0x02,
+};
+
 typedef struct Pic
 {	
 	uint8_t command;
@@ -36,6 +49,8 @@ typedef struct Pic
 	uint8_t irr; // interrupt request register, x bit is raised irq
 	uint8_t imr; // interrupt mask register, will prevent any irq at x bit set
 	uint16_t vector_offset; // offset from 0000:0000, or the ivt
+
+	uint8_t icw_step;
 } Pic;
 
 
