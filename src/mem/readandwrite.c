@@ -17,6 +17,16 @@ void write_address8(Sys8086* sys, uint32_t address, uint8_t value, _Bool port)
 	{
 		switch(address)
 		{
+		case 0x80:
+		{
+			printf("POST CODE: %d\n", value);
+			break;
+		}
+		case 0xE9:
+		{
+			printf("-------------PORT 0xE9 HACK:%c\n", value);
+			break;
+		}
 		case PS2_DATA_PORT:
 		case PS2_STATUS_COMMAND_REG_PORT:
 		{
@@ -29,11 +39,6 @@ void write_address8(Sys8086* sys, uint32_t address, uint8_t value, _Bool port)
 		case PIC_SLAVE_DATA_PORT:
 		{
 			handle_pic_port(sys, address, value, 0);
-			break;
-		}
-		case 0xE9:
-		{
-			printf("-------------PORT 0xE9 HACK:%c\n", value);
 			break;
 		}
 		case CGA_MODE_CONTROL_REGISTER_PORT:
