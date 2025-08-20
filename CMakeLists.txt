@@ -18,3 +18,7 @@ enable_language(ASM_NASM)
 
 add_executable(test.com test.asm)
 target_link_options(test.com PUBLIC -Ttext=0x7c00 --oformat=binary)
+add_executable(graphics.com graphics.asm)
+target_link_options(graphics.com PUBLIC -Ttext=0x7c00 --oformat=binary)
+add_executable(cputest.com cputest.asm)
+target_link_options(cputest.com PUBLIC -Ttext=0x7c00 --oformat=binary)
