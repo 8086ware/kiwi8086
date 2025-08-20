@@ -4,14 +4,26 @@
 // value is something to be written, using read 
 uint8_t handle_pic_port(Sys8086* sys, uint16_t port, uint8_t value, _Bool read)
 {
+	Pic* pic = NULL;
+
+	if(port == PIC_MASTER_COMMAND_PORT || port == PIC_MASTER_DATA_PORT)
+	{
+		pic = &sys->pic_master;
+	}
+
+	else if(port == PIC_SLAVE_COMMAND_PORT || port == PIC_SLAVE_DATA_PORT)
+	{
+		pic = &sys->pic_slave;
+	}
+
     switch(port)
 	{
 	case PIC_MASTER_COMMAND_PORT:
+	case PIC_SLAVE_COMMAND_PORT:
 	{
 		if(read)
 		{
-            //To read the ISR or IRR, write the appropriate command to the command port,
-            // and then read the command port (not the data port). To read the IRR, write 0x0a. To read the ISR, write 0x0b. 
+
 		}
 
 		else
@@ -26,6 +38,7 @@ uint8_t handle_pic_port(Sys8086* sys, uint16_t port, uint8_t value, _Bool read)
 	}
 
 	case PIC_MASTER_DATA_PORT:
+	case PIC_SLAVE_DATA_PORT:
 	{
 		if(read)
 		{
