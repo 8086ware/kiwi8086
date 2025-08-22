@@ -27,6 +27,7 @@ enum CPU_Group_Opcode_80
 {
 	ADD_RM8_IMM8 = 0x0,// Opcode group 80
 	OR_RM8_IMM8 = 0x1, // Opcode group 80
+	SBB_RM8_IMM8 = 0x3, // Opcode group 80
 	AND_RM8_IMM8 = 0x4, // Opcode group 80
 	SUB_RM8_IMM8 = 0x5, // Opcode group 80
 	XOR_RM8_IMM8 = 0x6, // Opcode group 80
@@ -37,6 +38,7 @@ enum CPU_Group_Opcode_81
 {
 	ADD_RM16_IMM16 = 0x0,// Opcode group 81
 	OR_RM16_IMM16 = 0x1, // Opcode group 81
+	SBB_RM16_IMM16 = 0x3,// Opcode group 81
 	AND_RM16_IMM16 = 0x4, // Opcode group 81
 	SUB_RM16_IMM16 = 0x5, // Opcode group 81
 	XOR_RM16_IMM16 = 0x6, // Opcode group 81
@@ -47,6 +49,7 @@ enum CPU_Group_Opcode_83
 {
 	ADD_RM16_IMM8 = 0x0, // Opcode group 83
 	OR_RM16_IMM8 = 0x1, // Opcode group 83
+	SBB_RM16_IMM8 = 0x3, // Opcode group 83
 	AND_RM16_IMM8 = 0x4, // Opcode group 83
 	SUB_RM16_IMM8 = 0x5, // Opcode group 83
 	XOR_RM16_IMM8 = 0x6, // Opcode group 83
@@ -261,6 +264,13 @@ enum CPU_Opcode
 	RET_FAR = 0xCB,
 	RET_NEAR_IMM16 = 0xC2,
 	RET_FAR_IMM16 = 0xCA,
+
+	SBB_AL_IMM8 = 0x1C,
+	SBB_AX_IMM16 = 0x1D,
+	SBB_RM8_R8 = 0x18,
+	SBB_RM16_R16 = 0x19,
+	SBB_R8_RM8 = 0x1A,
+	SBB_R16_RM16 = 0x1B,
 
 	SCASB = 0xAE,
 	SCASW = 0xAF,
