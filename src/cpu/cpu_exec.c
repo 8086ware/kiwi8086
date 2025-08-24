@@ -580,23 +580,23 @@ void cpu_exec(Sys8086* sys)
 					break;
 				}
 				// 0x2
-				case CALL_RM16: // FF mm dd dd
+				case CALL_RM16:
 				{
-					calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-					push(sys, sys->cpu.ip.whole);
+					int call_stack_restore = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);				
+					push(sys, sys->cpu.ip.whole + call_stack_restore);
 					jmp(sys, sys->cpu.cs.whole, *(uint16_t*)regmem);
 					break;
 				}
 				// 0x3
 				case CALL_M16_16: // FF mm
 				{
+					int call_stack_restore = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+
 					push(sys, sys->cpu.cs.whole);
-					push(sys, sys->cpu.ip.whole);
+					push(sys, sys->cpu.ip.whole + call_stack_restore);
 
-					calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
-					uint16_t segment = read_address16(sys, *(uint16_t*)regmem, 0);
-					uint16_t offset = read_address16(sys, *(uint16_t*)regmem + 2, 0);
+					uint16_t segment = read_address16(sys, *(uint16_t*)regmem + 2, 0);
+					uint16_t offset = read_address16(sys, *(uint16_t*)regmem, 0);
 
 					jmp(sys, segment, offset);
 					break;
@@ -747,8 +747,8 @@ void cpu_exec(Sys8086* sys)
 				push(sys, sys->cpu.cs.whole);
 				push(sys, sys->cpu.ip.whole);
 
-				uint16_t segment = read_address16(sys, read_address16(sys, cur_inst + 1, 0), 0);
-				uint16_t offset = read_address16(sys, read_address16(sys, cur_inst + 3, 0), 0);
+				uint16_t offset = read_address16(sys, cur_inst + 1, 0);
+				uint16_t segment = read_address16(sys, cur_inst + 3, 0);
 
 				jmp(sys, segment, offset);
 
