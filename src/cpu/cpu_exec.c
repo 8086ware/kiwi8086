@@ -881,16 +881,16 @@ void cpu_exec(Sys8086* sys)
 				break;
 			}
 			// 0x48 + i
-			case DEC_R16:
-			case DEC_R16 + 1:
-			case DEC_R16 + 2:
-			case DEC_R16 + 3:
-			case DEC_R16 + 4:
-			case DEC_R16 + 5:
-			case DEC_R16 + 6:
-			case DEC_R16 + 7:
+			case DEC_AX:
+			case DEC_CX:
+			case DEC_DX:
+			case DEC_BX:
+			case DEC_SP:
+			case DEC_BP:
+			case DEC_SI:
+			case DEC_DI:
 			{
-				int reg_code = opcode - DEC_R16;
+				int reg_code = opcode - DEC_AX;
 
 				reg = reg16_index(&sys->cpu, reg_code);
 
@@ -931,16 +931,16 @@ void cpu_exec(Sys8086* sys)
 				break;
 			}
 			// 40 + i
-			case INC_R16:
-			case INC_R16 + 1:
-			case INC_R16 + 2:
-			case INC_R16 + 3:
-			case INC_R16 + 4:
-			case INC_R16 + 5:
-			case INC_R16 + 6:
-			case INC_R16 + 7:
+			case INC_AX:
+			case INC_CX:
+			case INC_DX:
+			case INC_BX:
+			case INC_SP:
+			case INC_BP:
+			case INC_SI:
+			case INC_DI:
 			{
-				int reg_code = opcode - INC_R16;
+				int reg_code = opcode - INC_AX;
 
 				reg = reg16_index(&sys->cpu, reg_code);
 
@@ -1386,16 +1386,16 @@ void cpu_exec(Sys8086* sys)
 				break;
 			}
 			// B0 ii
-			case MOV_R8_IMM8:
-			case MOV_R8_IMM8 + 1:
-			case MOV_R8_IMM8 + 2:
-			case MOV_R8_IMM8 + 3:
-			case MOV_R8_IMM8 + 4:
-			case MOV_R8_IMM8 + 5:
-			case MOV_R8_IMM8 + 6:
-			case MOV_R8_IMM8 + 7:
+			case MOV_AL_IMM8:
+			case MOV_CL_IMM8:
+			case MOV_DL_IMM8:
+			case MOV_BL_IMM8:
+			case MOV_AH_IMM8:
+			case MOV_CH_IMM8:
+			case MOV_DH_IMM8:
+			case MOV_BH_IMM8:
 			{
-				int reg_code = opcode - MOV_R8_IMM8;
+				int reg_code = opcode - MOV_AL_IMM8;
 
 				reg = reg8_index(&sys->cpu, reg_code);
 
@@ -1405,16 +1405,16 @@ void cpu_exec(Sys8086* sys)
 				ip_increase = 2;
 				break;
 			}
-			case MOV_R16_IMM16: // B8+x ii ii
-			case MOV_R16_IMM16 + 1:
-			case MOV_R16_IMM16 + 2:
-			case MOV_R16_IMM16 + 3:
-			case MOV_R16_IMM16 + 4:
-			case MOV_R16_IMM16 + 5:
-			case MOV_R16_IMM16 + 6:
-			case MOV_R16_IMM16 + 7:
+			case MOV_AX_IMM16: // B8+x ii ii
+			case MOV_CX_IMM16:
+			case MOV_DX_IMM16:
+			case MOV_BX_IMM16:
+			case MOV_SP_IMM16:
+			case MOV_BP_IMM16:
+			case MOV_SI_IMM16:
+			case MOV_DI_IMM16:
 			{
-				int reg_code = opcode - MOV_R16_IMM16;
+				int reg_code = opcode - MOV_AX_IMM16;
 
 				reg = reg16_index(&sys->cpu, reg_code);
 
@@ -1544,16 +1544,16 @@ void cpu_exec(Sys8086* sys)
 				ip_increase = 1;
 				break;
 			}
-			case PUSH_R16: // 50 + i
-			case PUSH_R16 + 1:
-			case PUSH_R16 + 2:
-			case PUSH_R16 + 3:
-			case PUSH_R16 + 4:
-			case PUSH_R16 + 5:
-			case PUSH_R16 + 6:
-			case PUSH_R16 + 7:
+			case PUSH_AX: // 50 + i
+			case PUSH_CX:
+			case PUSH_DX:
+			case PUSH_BX:
+			case PUSH_SP:
+			case PUSH_BP:
+			case PUSH_SI:
+			case PUSH_DI:
 			{
-				int reg_code = opcode - PUSH_R16;
+				int reg_code = opcode - PUSH_AX;
 
 				reg = reg16_index(&sys->cpu, reg_code);
 
@@ -1563,26 +1563,31 @@ void cpu_exec(Sys8086* sys)
 				break;
 			}
 			// 06
-			case PUSH_SREG: // es
-			case PUSH_SREG + 0x8: // cs
-			case PUSH_SREG + 0x10: // ss
-			case PUSH_SREG + 0x18: // ds
+			case PUSH_ES: // es
+			case PUSH_CS: // cs
+			case PUSH_SS: // ss
+			case PUSH_DS: // ds
+			{
+				switch (opcode)
+				{
+				case PUSH_ES:
 			{
 				sys->cpu.sp.whole -= 2;
 
 				if ((opcode - 0x8) == POP_SREG)
 				{
 					reg = &sys->cpu.cs.whole;
+					break;
 				}
-
-				else if ((opcode - 0x10) == POP_SREG)
+				case PUSH_SS:
 				{
 					reg = &sys->cpu.ss.whole;
+					break;
 				}
-
-				else if ((opcode - 0x18) == POP_SREG)
+				case PUSH_DS:
 				{
 					reg = &sys->cpu.ds.whole;
+					break;
 				}
 
 				else
@@ -1590,7 +1595,7 @@ void cpu_exec(Sys8086* sys)
 					reg = &sys->cpu.es.whole;
 				}
 
-				push(sys, *(uint16_t*)reg);
+				push(sys, reg);
 
 				ip_increase = 1;
 				break;
@@ -1607,16 +1612,16 @@ void cpu_exec(Sys8086* sys)
 				push(sys, *(uint16_t*)regmem);
 				break;
 			}
-			case POP_R16: // 58 + i
-			case POP_R16 + 1:
-			case POP_R16 + 2:
-			case POP_R16 + 3:
-			case POP_R16 + 4:
-			case POP_R16 + 5:
-			case POP_R16 + 6:
-			case POP_R16 + 7:
+			case POP_AX: // 58 + i
+			case POP_CX:
+			case POP_DX:
+			case POP_BX:
+			case POP_SP:
+			case POP_BP:
+			case POP_SI:
+			case POP_DI:
 			{
-				int reg_code = opcode - POP_R16;
+				int reg_code = opcode - POP_AX;
 
 				reg = reg16_index(&sys->cpu, reg_code);
 
@@ -1626,29 +1631,33 @@ void cpu_exec(Sys8086* sys)
 				break;
 			}
 			// 07
-			case POP_SREG: // es
-			case POP_SREG + 0x8: // cs
-			case POP_SREG + 0x10: // ss
-			case POP_SREG + 0x18: // ds
+			case POP_ES: // es
+			case POP_CS: // cs
+			case POP_SS: // ss
+			case POP_DS: // ds
 			{
-				if ((opcode - 0x8) == POP_SREG)
+				switch (opcode)
+				{
+				case POP_ES:
+			{
+					reg = &sys->cpu.es.whole;
+					break;
+				}
+				case POP_CS:
 				{
 					reg = &sys->cpu.cs.whole;
+					break;
 				}
-
-				else if ((opcode - 0x10) == POP_SREG)
+				case POP_SS:
 				{
 					reg = &sys->cpu.ss.whole;
+					break;
 				}
-
-				else if ((opcode - 0x18) == POP_SREG)
+				case POP_DS:
 				{
 					reg = &sys->cpu.ds.whole;
+					break;
 				}
-
-				else
-				{
-					reg = &sys->cpu.es.whole;
 				}
 
 				pop(sys, reg);
@@ -1831,16 +1840,16 @@ void cpu_exec(Sys8086* sys)
 				and16(sys, &temp, *(uint16_t*)reg);
 				break;
 			}
-			case XCHG_AX_R16: // 90 + i
-			case XCHG_AX_R16 + 1:
-			case XCHG_AX_R16 + 2:
-			case XCHG_AX_R16 + 3:
-			case XCHG_AX_R16 + 4:
-			case XCHG_AX_R16 + 5:
-			case XCHG_AX_R16 + 6:
-			case XCHG_AX_R16 + 7:
+			case XCHG_AX_AX:
+			case XCHG_AX_CX:
+			case XCHG_AX_DX:
+			case XCHG_AX_BX:
+			case XCHG_AX_SP:
+			case XCHG_AX_BP:
+			case XCHG_AX_SI:
+			case XCHG_AX_DI:
 			{
-				int reg_code = opcode - XCHG_AX_R16;
+				int reg_code = opcode - XCHG_AX_AX;
 
 				reg = reg16_index(&sys->cpu, reg_code);
 
