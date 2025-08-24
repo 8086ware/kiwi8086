@@ -150,6 +150,14 @@ void cpu_exec(Sys8086* sys)
 					add8(sys, regmem, imm);
 					break;
 				}
+				case ADC_RM8_IMM8:
+				{
+					uint8_t imm = 0;
+					ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 0, 0, 0);
+					imm += sys->cpu.flag.whole & FLAG_CARRY;
+					add8(sys, regmem, imm);
+					break;
+				}
 				case SBB_RM8_IMM8:
 				{
 					uint8_t imm = 0;
@@ -214,6 +222,14 @@ void cpu_exec(Sys8086* sys)
 					add16(sys, regmem, imm);
 					break;
 				}
+				case ADC_RM16_IMM16:
+				{
+					uint16_t imm = 0;
+					ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 1, 0);
+					imm += sys->cpu.flag.whole & FLAG_CARRY;
+					add16(sys, regmem, imm);
+					break;
+				}
 				case SBB_RM16_IMM16:
 				{
 					uint16_t imm = 0;
@@ -275,6 +291,14 @@ void cpu_exec(Sys8086* sys)
 					uint16_t imm = 0;
 					ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 0, 0);
 
+					add16(sys, regmem, imm);
+					break;
+				}
+				case ADC_RM16_IMM8:
+				{
+					uint8_t imm = 0;
+					ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 0, 0);
+					imm += sys->cpu.flag.whole & FLAG_CARRY;
 					add16(sys, regmem, imm);
 					break;
 				}
@@ -600,6 +624,48 @@ void cpu_exec(Sys8086* sys)
 				}
 				}
 
+				break;
+			}
+			case ADC_AL_IMM8:
+			{
+				uint8_t imm = read_address8(sys, cur_inst + 1, 0);
+				sys->cpu.ax.low += imm + sys->cpu.flag.whole & FLAG_CARRY;
+				ip_increase += 2;
+				break;
+			}
+			case ADC_AX_IMM16:
+			{
+				uint16_t imm = read_address16(sys, cur_inst + 1, 0);
+				sys->cpu.ax.whole += imm + sys->cpu.flag.whole & FLAG_CARRY;
+				ip_increase += 2;
+				break;
+			}
+			case ADC_RM8_R8:
+			{
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+				*(uint8_t*)reg += sys->cpu.flag.whole & FLAG_CARRY;
+				add8(sys, regmem, *(uint8_t*)reg);
+				break;
+			}
+			case ADC_RM16_R16:
+			{
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+				*(uint16_t*)reg += sys->cpu.flag.whole & FLAG_CARRY;
+				add16(sys, regmem, *(uint16_t*)reg);
+				break;
+			}
+			case ADC_R8_RM8:
+			{
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+				*(uint8_t*)regmem += sys->cpu.flag.whole & FLAG_CARRY;
+				add8(sys, reg, *(uint8_t*)regmem);
+				break;
+			}
+			case ADC_R16_RM16:
+			{
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+				*(uint16_t*)regmem += sys->cpu.flag.whole & FLAG_CARRY;
+				add16(sys, reg, *(uint16_t*)regmem);
 				break;
 			}
 			case ADD_RM8_R8: // 00 mm
