@@ -113,8 +113,8 @@ void display_render(Sys8086* sys)
                 }
             }
 
-            int cursor_y = sys->display.crtc.cursor_address / 80;
-            int cursor_x = sys->display.crtc.cursor_address % 80;
+            int cursor_y = sys->display.crtc.cursor_address / columns;
+            int cursor_x = sys->display.crtc.cursor_address % columns;
 
             int write_location_y = cursor_y * 8;
             int write_location_x = cursor_x * 4;
