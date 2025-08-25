@@ -1231,6 +1231,17 @@ void cpu_exec(Sys8086* sys)
 				jmp(sys, new_cs, new_ip);
 				break;
 			}
+			case LES:
+			{
+				uint16_t imm = 0;
+				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+
+				*(uint16_t*)reg = *(uint16_t*)regmem;
+				((uint16_t*)regmem)++;
+				sys->cpu.es.whole = *(uint16_t*)regmem;
+
+				break;
+			}
 			case LODSB:
 			{
 				sys->cpu.ax.low = read_address8(sys, seg_mem(sys->cpu.ds.whole, sys->cpu.si.whole), 0);
