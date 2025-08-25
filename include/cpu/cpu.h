@@ -3,8 +3,8 @@
 
 #include <stdint.h>
 
-// lds, xlat, adc, aaa, sbb, imul, idiv
-// int3, rol (and others)
+// xlat, adc, aaa, imul, idiv
+// int3, rotate (and others)
 #define FLAG_CARRY      0b0000000000000001
 #define FLAG_PARITY     0b0000000000000100
 #define FLAG_HALF_CARRY 0b0000000000010000
