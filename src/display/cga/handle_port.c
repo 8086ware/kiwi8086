@@ -14,55 +14,53 @@ uint8_t handle_cga_port(Sys8086* sys, uint16_t port, uint8_t value, _Bool read)
 			return 0b0001001; // nevre in vertical retrace (technically) and no CGA snow
 		}
 
-
 		break;
 	}
 	case CGA_MODE_CONTROL_REGISTER_PORT:
 	{
+		sys->display.cga.mode_ctrl_reg = value;
+
+		if (sys->display.cga.mode_ctrl_reg & CGA_MODE_CONTROL_HIGH_RES_GRAPHICS)
 		{
-			sys->display.cga.mode_ctrl_reg = value;
+			SDL_DestroySurface(sys->display.surface);
+			sys->display.surface = SDL_CreateSurface(640, 200, SDL_PIXELFORMAT_INDEX1MSB);
+			SDL_SetSurfacePalette(sys->display.surface, sys->display.palette_1bit);
+		}
 
-			if(sys->display.cga.mode_ctrl_reg & CGA_MODE_CONTROL_HIGH_RES_GRAPHICS)
+		else if (sys->display.cga.mode_ctrl_reg & CGA_MODE_CONTROL_GRAPHICS)
+		{
+			SDL_DestroySurface(sys->display.surface);
+			sys->display.surface = SDL_CreateSurface(320, 200, SDL_PIXELFORMAT_INDEX2MSB);
+			if (sys->display.cga.color_ctrl_reg & CGA_COLOR_CONTROL_PALETTE) // magenta, cyan, white
 			{
-				SDL_DestroySurface(sys->display.surface);
-				sys->display.surface = SDL_CreateSurface(640, 200, SDL_PIXELFORMAT_INDEX1MSB);
-				SDL_SetSurfacePalette(sys->display.surface, sys->display.palette_1bit);
+				SDL_SetSurfacePalette(sys->display.surface, sys->display.cga_palette_1);
 			}
 
-			else if(sys->display.cga.mode_ctrl_reg & CGA_MODE_CONTROL_GRAPHICS)
+			else // red, green, yellow
 			{
-				SDL_DestroySurface(sys->display.surface);
-				sys->display.surface = SDL_CreateSurface(320, 200, SDL_PIXELFORMAT_INDEX2MSB);
-				if(sys->display.cga.color_ctrl_reg & CGA_COLOR_CONTROL_PALETTE) // magenta, cyan, white
-				{
-					SDL_SetSurfacePalette(sys->display.surface, sys->display.cga_palette_1);
-				}
-
-				else // red, green, yellow
-				{
-					SDL_SetSurfacePalette(sys->display.surface, sys->display.cga_palette_0);
-				}
-			}
-			
-			else
-			{
-				SDL_DestroySurface(sys->display.surface);
-
-				if(sys->display.cga.mode_ctrl_reg & CGA_MODE_CONTROL_HIGH_RES)
-				{
-					sys->display.surface = SDL_CreateSurface(640, 200, SDL_PIXELFORMAT_INDEX4MSB);
-				}
-				else
-				{
-					sys->display.surface = SDL_CreateSurface(320, 200, SDL_PIXELFORMAT_INDEX4MSB);
-				}
-
-				SDL_SetSurfacePalette(sys->display.surface, sys->display.palette_4bit);
+				SDL_SetSurfacePalette(sys->display.surface, sys->display.cga_palette_0);
 			}
 		}
-		
+
+		else
+		{
+			SDL_DestroySurface(sys->display.surface);
+
+			if (sys->display.cga.mode_ctrl_reg & CGA_MODE_CONTROL_HIGH_RES)
+			{
+				sys->display.surface = SDL_CreateSurface(640, 200, SDL_PIXELFORMAT_INDEX4MSB);
+			}
+			else
+			{
+				sys->display.surface = SDL_CreateSurface(320, 200, SDL_PIXELFORMAT_INDEX4MSB);
+			}
+
+			SDL_SetSurfacePalette(sys->display.surface, sys->display.palette_4bit);
+		}
+
 		break;
 	}
+
 	case CGA_COLOR_CONTROL_REGISTER_PORT:
 	{
 		if(read)
