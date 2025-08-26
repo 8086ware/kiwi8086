@@ -3,8 +3,7 @@
 
 SDL_Color index_cga_palette_0(uint8_t num, _Bool intensity)
 {
-    SDL_Color color;
-
+    SDL_Color color = { 0 };
     switch(num)
     {
         case 1:
@@ -38,7 +37,7 @@ SDL_Color index_cga_palette_0(uint8_t num, _Bool intensity)
 
 SDL_Color index_cga_palette_1(uint8_t num, _Bool intensity)
 {
-    SDL_Color color;
+    SDL_Color color = { 0 };
     switch(num)
     {
         case 1:
@@ -73,7 +72,7 @@ SDL_Color index_cga_palette_1(uint8_t num, _Bool intensity)
 
 SDL_Color index_4bit_palette(uint8_t num)
 {
-    SDL_Color color;
+    SDL_Color color = { 0 };
 
     switch(num)
     {
