@@ -61,7 +61,15 @@ void write_address8(Sys8086* sys, uint32_t address, uint8_t value, _Bool port)
 			handle_pit_port(sys, address, value, 0);
 			break;
 		}
+		case PPI_PORT_A:
+		case PPI_PORT_B:
+		case PPI_PORT_C:
+		case PPI_PORT_CTRL:
+		{
+			handle_ppi_port(sys, address, value, 0);
+			break;
 		}
+	}
 	}
 
 	else // normal address space
@@ -122,6 +130,7 @@ uint8_t read_address8(Sys8086* sys, uint32_t address, _Bool port)
 		case CRTC_DATA_REGISTER_PORT:
 		{
 			return handle_crtc_port(sys, address, 0, 1);
+			break;
 		}
 		case PIT_CHANNEL_0_PORT:
 		case PIT_CHANNEL_1_PORT:
@@ -129,6 +138,14 @@ uint8_t read_address8(Sys8086* sys, uint32_t address, _Bool port)
 		case PIT_MODE_COMMAND_REG_PORT:
 		{
 			return handle_pit_port(sys, address, 0, 1);
+			break;
+		}
+		case PPI_PORT_A:
+		case PPI_PORT_B:
+		case PPI_PORT_C:
+		case PPI_PORT_CTRL:
+		{
+			return handle_ppi_port(sys, address, 0, 1);
 			break;
 		}
 		}
