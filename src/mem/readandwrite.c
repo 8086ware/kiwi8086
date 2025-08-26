@@ -27,7 +27,6 @@ void write_address8(Sys8086* sys, uint32_t address, uint8_t value, _Bool port)
 			printf("-------------PORT 0xE9 HACK:%c\n", value);
 			break;
 		}
-		case PS2_DATA_PORT:
 		case PS2_STATUS_COMMAND_REG_PORT:
 		{
 			handle_ps2_controller_port(sys, address, value, 0);
@@ -99,7 +98,6 @@ uint8_t read_address8(Sys8086* sys, uint32_t address, _Bool port)
 	{
 		switch (address)
 		{
-		case PS2_DATA_PORT:
 		case PS2_STATUS_COMMAND_REG_PORT:
 		{
 			return handle_ps2_controller_port(sys, address, 0, 1);
