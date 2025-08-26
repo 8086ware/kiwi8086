@@ -15,7 +15,6 @@ enum PS2_Ctrl_Status_Reg_Flags
 
 enum PS2_Ctrl_Port
 {
-	PS2_DATA_PORT = 0x60,
 	PS2_STATUS_COMMAND_REG_PORT = 0x64, // read = Status, write = Command
 };
 

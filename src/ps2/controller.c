@@ -29,15 +29,5 @@ uint8_t handle_ps2_controller_port(Sys8086* sys, uint16_t port, uint8_t value, _
 		
 		break;
 	}
-
-	case PS2_DATA_PORT:
-	{
-		if(read)
-		{
-			sys->ps2.status_reg &= ~PS2_STATUS_OUTPUT_BUFFER_FLAG;
-			return sys->ps2.output_buffer;
-		}
-		break;
-	}
 	}
 }
