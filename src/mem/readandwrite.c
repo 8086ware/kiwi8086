@@ -74,7 +74,7 @@ void write_address8(Sys8086* sys, uint32_t address, uint8_t value, _Bool port)
 
 	else // normal address space
 	{
-		if(address >= CGA_ADDRESS && address <= CGA_ADDRESS + CGA_RAM_SIZE)
+		if(address >= CGA_ADDRESS && address < CGA_ADDRESS + CGA_RAM_SIZE)
 		{
 			sys->display.cga.ram[address - CGA_ADDRESS] = value;
 		}
@@ -153,7 +153,7 @@ uint8_t read_address8(Sys8086* sys, uint32_t address, _Bool port)
 
 	else // normal address space
 	{
-		if(address >= CGA_ADDRESS && address <= CGA_ADDRESS + CGA_RAM_SIZE)
+		if(address >= CGA_ADDRESS && address < CGA_ADDRESS + CGA_RAM_SIZE)
 		{
 			return sys->display.cga.ram[address - CGA_ADDRESS];
 		}
