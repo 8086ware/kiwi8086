@@ -1682,15 +1682,30 @@ void cpu_exec(Sys8086* sys)
 				ip_increase = 1;
 				break;
 			}
-			case RET_FAR: // CB
+			case RET_FAR:
 			{
 				pop(sys, &sys->cpu.ip.whole);
 				pop(sys, &sys->cpu.cs.whole);
 				break;
-			}
-			case RET_NEAR: // C3
+			}			
+			case RET_FAR_IMM16:
 			{
 				pop(sys, &sys->cpu.ip.whole);
+				pop(sys, &sys->cpu.cs.whole);
+				sys->cpu.sp.whole += read_address16(sys, cur_inst + 1, 0);
+				break;
+			}
+			case RET_NEAR:
+			{
+				pop(sys, &sys->cpu.ip.whole);
+				break;
+			}
+			case RET_NEAR_IMM16:
+			{
+				pop(sys, &sys->cpu.ip.whole);
+				sys->cpu.sp.whole += read_address16(sys, cur_inst + 1, 0);
+				break;
+			}
 			case SBB_AL_IMM8:
 			{
 				uint8_t imm = read_address8(sys, cur_inst + 1, 0);
