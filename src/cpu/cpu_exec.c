@@ -1551,7 +1551,7 @@ void cpu_exec(Sys8086* sys)
 			}
 			case OUT_DX_AX:
 			{
-				write_address8(sys, sys->cpu.dx.whole, sys->cpu.ax.whole, 1);
+				write_address16(sys, sys->cpu.dx.whole, sys->cpu.ax.whole, 1);
 				ip_increase = 1;
 				break;
 			}
@@ -1583,9 +1583,10 @@ void cpu_exec(Sys8086* sys)
 				{
 				case PUSH_ES:
 			{
-				sys->cpu.sp.whole -= 2;
-
-				if ((opcode - 0x8) == POP_SREG)
+					reg = &sys->cpu.es.whole;
+					break;
+				}
+				case PUSH_CS:
 				{
 					reg = &sys->cpu.cs.whole;
 					break;
@@ -1600,13 +1601,9 @@ void cpu_exec(Sys8086* sys)
 					reg = &sys->cpu.ds.whole;
 					break;
 				}
-
-				else
-				{
-					reg = &sys->cpu.es.whole;
 				}
 
-				push(sys, reg);
+				push(sys, *(uint16_t*)reg);
 
 				ip_increase = 1;
 				break;
@@ -1620,7 +1617,7 @@ void cpu_exec(Sys8086* sys)
 			case POP_RM16: // 8F mm dd dd
 			{
 				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-				push(sys, *(uint16_t*)regmem);
+				pop(sys, regmem);
 				break;
 			}
 			case POP_AX: // 58 + i
@@ -1717,7 +1714,7 @@ void cpu_exec(Sys8086* sys)
 			{
 				uint16_t imm = read_address16(sys, cur_inst + 1, 0);
 				imm += sys->cpu.flag.whole & FLAG_CARRY;
-				sub8(sys, &sys->cpu.ax.whole, imm);
+				sub16(sys, &sys->cpu.ax.whole, imm);
 				break;
 			}
 			case SBB_RM8_R8:
@@ -1731,7 +1728,7 @@ void cpu_exec(Sys8086* sys)
 			{
 				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
 				(*(uint16_t*)reg) += sys->cpu.flag.whole & FLAG_CARRY;
-				sub8(sys, regmem, (*(uint16_t*)reg));
+				sub16(sys, regmem, (*(uint16_t*)reg));
 				break;
 			}
 			case SBB_R8_RM8:
@@ -1745,7 +1742,7 @@ void cpu_exec(Sys8086* sys)
 			{
 				ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
 				(*(uint16_t*)regmem) += sys->cpu.flag.whole & FLAG_CARRY;
-				sub8(sys, reg, (*(uint16_t*)regmem));
+				sub16(sys, reg, (*(uint16_t*)regmem));
 				break;
 			}
 			case STC:
@@ -1916,7 +1913,7 @@ void cpu_exec(Sys8086* sys)
 			}
 			case XOR_AX_IMM16:
 			{
-				uint8_t imm = read_address16(sys, cur_inst + 1, 0);
+				uint16_t imm = read_address16(sys, cur_inst + 1, 0);
 				xor16(sys, &sys->cpu.ax.whole, imm);
 				ip_increase = 3;
 				break;
