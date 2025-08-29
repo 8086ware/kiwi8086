@@ -206,6 +206,12 @@ void cpu_exec(Sys8086* sys)
 					xor8(sys, regmem, imm);
 					break;
 				}
+				default:
+				{
+					printf("Unknown Opcode %x %d\n", opcode, group_opcode_instruction);
+					ip_increase = 1;
+					break;
+				}
 				}
 				break;
 			}
@@ -276,6 +282,12 @@ void cpu_exec(Sys8086* sys)
 					ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 1, 0);
 
 					xor16(sys, regmem, imm);
+					break;
+				}
+				default:
+				{
+					printf("Unknown Opcode %x /%d\n", opcode, group_opcode_instruction);
+					ip_increase = 1;
 					break;
 				}
 				}
@@ -350,6 +362,12 @@ void cpu_exec(Sys8086* sys)
 					xor16(sys, regmem, imm);
 					break;
 				}
+				default:
+				{
+					printf("Unknown Opcode %x /%d\n", opcode, group_opcode_instruction);
+					ip_increase = 1;
+					break;
+				}
 				}
 				break;
 			}
@@ -377,6 +395,12 @@ void cpu_exec(Sys8086* sys)
 					ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
 
 					shr8(sys, regmem, 1);
+					break;
+				}
+				default:
+				{
+					printf("Unknown Opcode %x /%d\n", opcode, group_opcode_instruction);
+					ip_increase = 1;
 					break;
 				}
 				}
@@ -409,6 +433,12 @@ void cpu_exec(Sys8086* sys)
 					shr16(sys, regmem, 1);
 					break;
 				}
+				default:
+				{
+					printf("Unknown Opcode %x /%d\n", opcode, group_opcode_instruction);
+					ip_increase = 1;
+					break;
+				}
 				}
 
 				break;
@@ -439,6 +469,12 @@ void cpu_exec(Sys8086* sys)
 					shr8(sys, regmem, sys->cpu.cx.low);
 					break;
 				}
+				default:
+				{
+					printf("Unknown Opcode %x /%d\n", opcode, group_opcode_instruction);
+					ip_increase = 1;
+					break;
+				}
 				}
 				break;
 			}
@@ -466,6 +502,12 @@ void cpu_exec(Sys8086* sys)
 					ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
 
 					shr16(sys, regmem, sys->cpu.cx.low);
+					break;
+				}
+				default:
+				{
+					ip_increase = 1;
+					printf("Unknown Opcode %x /%d\n", opcode, group_opcode_instruction);
 					break;
 				}
 				}
@@ -509,6 +551,15 @@ void cpu_exec(Sys8086* sys)
 				}
 				break;
 			}
+				default:
+				{
+					ip_increase = 1;
+					printf("Unknown Opcode %x /%d\n", opcode, group_opcode_instruction);
+					break;
+				}
+				}
+				break;
+			}
 			case GROUP_OPCODE_F7:
 			{
 				enum CPU_Group_Opcode_F7 group_opcode_instruction = (read_address8(sys, cur_inst + 1, 0) & 0b00111000) >> 3;
@@ -544,6 +595,12 @@ void cpu_exec(Sys8086* sys)
 					*(uint16_t*)regmem = ~(*(uint16_t*)regmem);
 					break;
 				}
+				default:
+				{
+					ip_increase = 1;
+					printf("Unknown Opcode %x /%d\n", opcode, group_opcode_instruction);
+					break;
+				}
 				}
 				break;
 			}
@@ -562,6 +619,12 @@ void cpu_exec(Sys8086* sys)
 				{
 					ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
 					inc8(sys, regmem);
+					break;
+				}
+				default:
+				{
+					ip_increase = 1;
+					printf("Unknown Opcode %x /%d\n", opcode, group_opcode_instruction);
 					break;
 				}
 				}
@@ -620,6 +683,12 @@ void cpu_exec(Sys8086* sys)
 				{
 					ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
 					inc16(sys, regmem);
+					break;
+				}
+				default:
+				{
+					ip_increase = 1;
+					printf("Unknown Opcode %x /%d\n", opcode, group_opcode_instruction);
 					break;
 				}
 				}
