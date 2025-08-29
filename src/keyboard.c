@@ -251,8 +251,7 @@ void ps2_keyboard(Sys8086* sys, SDL_Event event)
             ps2_keyboard_scancode += 80;
         }
 
-        sys->ps2.output_buffer = ps2_keyboard_scancode;
-        sys->ps2.status_reg |= PS2_STATUS_OUTPUT_BUFFER_FLAG; // Output is available
+        sys->ppi.regs[0] = ps2_keyboard_scancode;
         sys->pic_master.irr |= 1 << PIC_IRQ_KEYBOARD;
     }
 }

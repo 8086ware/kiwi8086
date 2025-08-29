@@ -3,7 +3,6 @@
 #include "system.h"
 #include "pic.h"
 #include <stdio.h>
-#include "ps2/controller.h"
 #include "display/cga.h"
 
 void write_address8(Sys8086* sys, uint32_t address, uint8_t value, _Bool port)
@@ -25,11 +24,6 @@ void write_address8(Sys8086* sys, uint32_t address, uint8_t value, _Bool port)
 		case 0xE9:
 		{
 			printf("-------------PORT 0xE9 HACK:%c\n", value);
-			break;
-		}
-		case PS2_STATUS_COMMAND_REG_PORT:
-		{
-			handle_ps2_controller_port(sys, address, value, 0);
 			break;
 		}
 		case PIC_MASTER_COMMAND_PORT:
@@ -106,11 +100,6 @@ uint8_t read_address8(Sys8086* sys, uint32_t address, _Bool port)
 	{
 		switch (address)
 		{
-		case PS2_STATUS_COMMAND_REG_PORT:
-		{
-			return handle_ps2_controller_port(sys, address, 0, 1);
-			break;
-		}
 		case PIC_MASTER_COMMAND_PORT:
 		case PIC_SLAVE_COMMAND_PORT:
 		case PIC_MASTER_DATA_PORT:

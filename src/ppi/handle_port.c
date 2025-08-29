@@ -1,6 +1,5 @@
 #include "system.h"
 #include "ppi.h"
-#include "ps2/controller.h"
 
 // value is something to be written, using read 
 uint8_t handle_ppi_port(Sys8086* sys, uint16_t port, uint8_t value, _Bool read)
@@ -11,8 +10,7 @@ uint8_t handle_ppi_port(Sys8086* sys, uint16_t port, uint8_t value, _Bool read)
 	{
 		if (read)
 		{
-			sys->ps2.status_reg &= ~PS2_STATUS_OUTPUT_BUFFER_FLAG;
-			return sys->ps2.output_buffer;
+			return sys->ppi.regs[0];
 		}
 
 		break;
@@ -42,8 +40,7 @@ uint8_t handle_ppi_port(Sys8086* sys, uint16_t port, uint8_t value, _Bool read)
 
 			if ((sys->ppi.regs[1] & PPI_FLAG_B_KEYBOARD_CLOCK) == 0) // clock line low, respond with test pass
 			{
-				sys->ps2.status_reg |= PS2_STATUS_OUTPUT_BUFFER_FLAG;
-				sys->ps2.output_buffer = 0xAA;
+				sys->ppi.regs[0] = 0xAA;
 			}
 		}
 
