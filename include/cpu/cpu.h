@@ -94,6 +94,8 @@ enum CPU_Group_Opcode_F6
 	NOT_RM8 = 0x2, // Opcode group F6
 	NEG_RM8 = 0x3, // Opcode group F6
 	MUL_RM8 = 0x4, // Opcode group F6
+	DIV_RM8 = 0x6,
+	IDIV_RM8 = 0x7, // Opcode group F6
 };
 
 enum CPU_Group_Opcode_F7
@@ -102,6 +104,8 @@ enum CPU_Group_Opcode_F7
 	NOT_RM16 = 0x2, // Opcode group F7
 	NEG_RM16 = 0x3, // Opcode group F7
 	MUL_RM16 = 0x4, // Opcode group F7
+	DIV_RM16 = 0x6,
+	IDIV_RM16 = 0x7, // Opcode group F6
 };
 
 enum CPU_Group_Opcode_FE

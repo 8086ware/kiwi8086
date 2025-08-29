@@ -548,7 +548,22 @@ void cpu_exec(Sys8086* sys)
 					*(uint8_t*)regmem = ~(*(uint8_t*)regmem);
 					break;
 				}
+				case DIV_RM8:
+				{
+					ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+
+					uint16_t to_divide = sys->cpu.ax.whole;
+					sys->cpu.ax.low = to_divide / *(uint8_t*)regmem;
+					sys->cpu.ax.high = to_divide % *(uint8_t*)regmem;
+					break;
 				}
+				case IDIV_RM8:
+				{
+					ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+
+					int16_t to_divide = sys->cpu.ax.whole;
+					sys->cpu.ax.low = to_divide / *(int8_t*)regmem;
+					sys->cpu.ax.high = to_divide % *(int8_t*)regmem;
 				break;
 			}
 				default:
@@ -593,6 +608,26 @@ void cpu_exec(Sys8086* sys)
 					ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
 
 					*(uint16_t*)regmem = ~(*(uint16_t*)regmem);
+					break;
+				}
+				case DIV_RM16:
+				{
+					ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+
+					uint32_t value_to_divide = sys->cpu.dx.whole << 16;
+					value_to_divide |= sys->cpu.ax.whole;
+					sys->cpu.ax.whole = value_to_divide / *(uint16_t*)regmem;
+					sys->cpu.dx.whole = value_to_divide % *(uint16_t*)regmem;
+					break;
+				}
+				case IDIV_RM16:
+				{
+					ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+
+					int32_t value_to_divide = sys->cpu.dx.whole << 16;
+					value_to_divide |= sys->cpu.ax.whole;
+					sys->cpu.ax.whole = value_to_divide / *(int16_t*)regmem;
+					sys->cpu.dx.whole = value_to_divide % *(int16_t*)regmem;
 					break;
 				}
 				default:
