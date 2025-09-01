@@ -397,7 +397,6 @@ typedef struct CPU
 {
 	uint64_t last_tick;
 
-	_Bool prev_byte_success;
 	_Bool halted;
 
 	// General purpose registers
@@ -434,6 +433,10 @@ typedef struct CPU
 	// Status flag
 
 	Register flag;
+
+	_Bool sti_enable;
+	_Bool zero_flag_check;
+
 	int instructions;
 } CPU;
 
