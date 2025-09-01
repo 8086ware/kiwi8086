@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
 	while (event.type != SDL_EVENT_QUIT) // X button on window
 	{
 		cpu_exec(sys); // fetch/decode/execute/store
-		ps2_keyboard(sys, event); // poll for ps2 keyboard events
+		poll_keyboard(sys, event); // poll for keyboard events
 		pit_cycle(sys); // decrement PIT counter/do other pit stuff (fire irq 0)
 		display_render(sys); // Render CGA display
 
