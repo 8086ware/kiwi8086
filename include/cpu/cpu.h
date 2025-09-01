@@ -242,6 +242,8 @@ enum CPU_Opcode
 	JP_REL8 = 0x7A,
 	JS_REL8 = 0x78,
 
+	LAHF = 0x9F,
+
 	LES = 0xC4,
 	LOOP_REL8 = 0xE2,
 	LOOPE_REL8 = 0xE1,
@@ -328,6 +330,8 @@ enum CPU_Opcode
 	RET_FAR = 0xCB,
 	RET_NEAR_IMM16 = 0xC2,
 	RET_FAR_IMM16 = 0xCA,
+
+	SAHF = 0x9E,
 
 	SBB_AL_IMM8 = 0x1C,
 	SBB_AX_IMM16 = 0x1D,
