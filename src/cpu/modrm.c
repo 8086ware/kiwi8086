@@ -11,6 +11,16 @@
 
 uint8_t calc_modrm_byte(Sys8086* sys, Register* data_seg, int instruction_address, void** reg, void** regmem, void* imm, _Bool word, _Bool imm_word, _Bool sreg)
 {
+	_Bool default_seg = 1;
+
+	// Im not rewriting on calc_modrm_byte instances, so in cpu_exec we create a temporary variable with the value of DS
+	// (default segment) and if it actually POINTS to DS or any other segment, then use that
+
+	if (data_seg == &sys->cpu.es || data_seg == &sys->cpu.cs || data_seg == &sys->cpu.ss || data_seg == &sys->cpu.ds)
+	{
+		default_seg = 0;
+	}
+
 	uint8_t modrm = read_address8(sys, instruction_address + 1, 0);
 
 	// modrm == 0b10'000'000
@@ -92,11 +102,21 @@ uint8_t calc_modrm_byte(Sys8086* sys, Register* data_seg, int instruction_addres
 		}
 		case 2:
 		{
+			if (default_seg)
+			{
+				data_seg = &sys->cpu.ss;
+			}
+
 			*(uint16_t*)regmem += sys->cpu.bp.whole + sys->cpu.si.whole;
 			break;
 		}
 		case 3:
 		{
+			if (default_seg)
+			{
+				data_seg = &sys->cpu.ss;
+			}
+
 			*(uint16_t*)regmem += sys->cpu.bp.whole + sys->cpu.di.whole;
 			break;
 		}
@@ -114,11 +134,16 @@ uint8_t calc_modrm_byte(Sys8086* sys, Register* data_seg, int instruction_addres
 		{
 			if (mod_val == 0)
 			{
-				*(uint16_t*)regmem += read_address16(sys, instruction_address + displacement_position, 0);;
+				*(uint16_t*)regmem += read_address16(sys, instruction_address + displacement_position, 0);
 			}
 
 			else
 			{
+				if (default_seg)
+				{
+					data_seg = &sys->cpu.ss;
+				}
+
 				*(uint16_t*)regmem += sys->cpu.bp.whole;
 			}
 
