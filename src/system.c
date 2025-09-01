@@ -97,13 +97,7 @@ Sys8086* init_sys(FILE* image, FILE* bios_rom)
 	sys->pic_master.isr = 0;
 	sys->pic_slave.isr = 0;
 
-	// init ps2
-	
-	sys->ps2.status_reg = 0;
-
 	sys->cpu.halted = 0;
-
-	sys->cpu.prev_byte_success = 0;
 
 	sys->cpu.flag.whole = 0;
 
