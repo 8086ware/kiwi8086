@@ -85,8 +85,8 @@ Sys8086* init_sys(FILE* image, FILE* bios_rom)
 	memset(sys->memory, 0, MAX_MEMORY_8086);
 
 	// init pic
-	sys->pic_master.vector_offset = 0x20;
-	sys->pic_slave.vector_offset = 0x1C0;
+	sys->pic_master.vector_offset = 0x8;
+	sys->pic_slave.vector_offset = 0x70;
 
 	sys->pic_master.irr = 0;
 	sys->pic_slave.irr = 0;
