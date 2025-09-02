@@ -18,7 +18,7 @@ void write_address8(Sys8086* sys, uint32_t address, uint8_t value, _Bool port)
 		{
 		case 0x80:
 		{
-			printf("POST CODE: %d\n", value);
+			printf("POST CODE: 0x%x\n", value);
 			break;
 		}
 		case 0xE9:
