@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
 		if(now_tick - last_calc_tick >= 1000)
 		{
 			char title[64];
-			sprintf(title, "kiwi8086 - IPS: %d", sys->cpu.instructions);
+			sprintf(title, "kiwi8086 - IPS: %d, Halted: %d", sys->cpu.instructions, sys->cpu.halted);
 			SDL_SetWindowTitle(sys->display.win, title);
 			last_calc_tick = now_tick;
 			sys->cpu.instructions = 0;
