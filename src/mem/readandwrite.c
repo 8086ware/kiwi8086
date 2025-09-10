@@ -14,7 +14,7 @@ void write_address8(Sys8086* sys, uint32_t address, uint8_t value, _Bool port)
 
 	if (port) // port address space (devices)
 	{
-		switch(address)
+		switch (address)
 		{
 		case 0x80:
 		{
@@ -80,11 +80,11 @@ void write_address8(Sys8086* sys, uint32_t address, uint8_t value, _Bool port)
 		{
 			handle_fdc_port(sys, address, value, 0);
 			break;
-	}
+		}
 		default:
 		{
 			printf("Unkown port? %x\n", address);
-	}
+		}
 		}
 	}
 
