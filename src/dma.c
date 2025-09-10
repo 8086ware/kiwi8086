@@ -9,7 +9,7 @@ uint8_t handle_dma_port(Sys8086* sys, uint16_t port, uint8_t value, _Bool read)
 	{
 		if (read) // status
 		{
-
+			return sys->dma.status;
 		}
 
 		else // command
