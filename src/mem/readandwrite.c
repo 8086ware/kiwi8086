@@ -75,7 +75,18 @@ void write_address8(Sys8086* sys, uint32_t address, uint8_t value, _Bool port)
 			handle_dma_port(sys, address, value, 0);
 			break;
 		}
+		case FDC_PORT_MSR:
+		case FDC_PORT_DATA_IO:
+		case FDC_PORT_DOR:
+		{
+			handle_fdc_port(sys, address, value, 0);
+			break;
 	}
+		default:
+		{
+			printf("Unkown port? %x\n", address);
+	}
+		}
 	}
 
 	else // normal address space
@@ -159,6 +170,13 @@ uint8_t read_address8(Sys8086* sys, uint32_t address, _Bool port)
 		case DMA_CHANNEL_3_WORD_COUNT_PORT:
 		{
 			return handle_dma_port(sys, address, 0, 1);
+			break;
+		}
+		case FDC_PORT_MSR:
+		case FDC_PORT_DATA_IO:
+		case FDC_PORT_DOR:
+		{
+			return handle_fdc_port(sys, address, 0, 1);
 			break;
 		}
 		}
