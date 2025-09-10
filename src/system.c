@@ -106,7 +106,8 @@ Sys8086* init_sys(FILE* image, FILE* bios_rom)
 	sys->pit.timers[0].reload_value = 0;
 	sys->pit.timers[0].current_count = sys->pit.timers[0].reload_value;
 
-	// load bios if exist and load bootloader raw if not
+	// load bios if exist
+
 	if(bios_rom != NULL)
 	{
 		fseek(bios_rom, 0, SEEK_END);
@@ -116,10 +117,7 @@ Sys8086* init_sys(FILE* image, FILE* bios_rom)
 		fread(&sys->memory[MAX_MEMORY_8086 - bios_size], sizeof(uint8_t), bios_size, bios_rom);
 	}
 
-	else 
-	{
-		fread(&sys->memory[0x7c00], sizeof(uint8_t), 512, image);
-	}
+	sys->fdc.fdd[0].floppy1 = image;
 
 	return sys;
 }

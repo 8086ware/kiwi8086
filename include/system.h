@@ -9,6 +9,7 @@
 #include "pit.h"
 #include "ppi.h"
 #include "dma.h"
+#include "fdc.h"
 
 #define MAX_MEMORY_8086 1048576
 // Things to emulate:
@@ -31,6 +32,7 @@ typedef struct Sys8086
 	Pit pit;
 	Ppi ppi;
 	DMA dma;
+	FDC fdc;
 } Sys8086;
 
 Sys8086* init_sys(FILE* image, FILE* bios_rom);
@@ -48,5 +50,6 @@ uint8_t handle_crtc_port(Sys8086* sys, uint16_t port, uint8_t value, _Bool read)
 uint8_t handle_pit_port(Sys8086* sys, uint16_t port, uint8_t value, _Bool read);
 uint8_t handle_ppi_port(Sys8086* sys, uint16_t port, uint8_t value, _Bool read);
 uint8_t handle_dma_port(Sys8086* sys, uint16_t port, uint8_t value, _Bool read);
+uint8_t handle_fdc_port(Sys8086* sys, uint16_t port, uint8_t value, _Bool read);
 
 #endif
