@@ -21,120 +21,120 @@ void display_render(Sys8086* sys)
 
     int bpp = 0;
 
-    if(now_tick - sys->display.last_tick >= 16666600)
+    if (now_tick - sys->display.last_tick >= 16666600)
     {
-    if(sys->display.cga.mode_ctrl_reg & CGA_MODE_CONTROL_VIDEO) // Is this thing on?
-	{
-        if(sys->display.cga.mode_ctrl_reg & CGA_MODE_CONTROL_GRAPHICS)
+        if (sys->display.cga.mode_ctrl_reg & CGA_MODE_CONTROL_VIDEO) // Is this thing on?
         {
-            // graphics mode
-
-            if(sys->display.cga.mode_ctrl_reg & CGA_MODE_CONTROL_HIGH_RES_GRAPHICS) // 640x200 2 colors (1bpp, 640x200/8 = 16k)
+            if (sys->display.cga.mode_ctrl_reg & CGA_MODE_CONTROL_GRAPHICS)
             {
-                width = 640;
-                height = 200;
-                bpp = 1;
-            }
+                // graphics mode
 
-            else // 320x200 4 colors (2 bits per color, 320x200/(8/2) = 16k)
-            {
-                width = 320;
-                height = 200;
-                bpp = 2;
-            }
-
-            memcpy(sys->display.surface->pixels, sys->display.cga.ram, (width*height)/(8/bpp));
-        }
-
-        else
-        {
-            // text mode
-
-            // 80x25 (high res text, 640x200, 16 colors)
-
-            if(sys->display.cga.mode_ctrl_reg & CGA_MODE_CONTROL_HIGH_RES)
-            {
-                width = 640;
-                height = 200;
-                columns = 80;
-                rows = 25;
-
-                bpp = 4;
-            }
-
-            else //320x200 4bpp text mode(40x25)
-            {
-                width = 320;
-                height = 200;
-                columns = 40;
-                rows = 25;
-                
-                bpp = 4;
-            }
-
-            for(int y = 0; y < rows; y++)
-            {
-                for(int x = 0; x < columns; x++)
+                if (sys->display.cga.mode_ctrl_reg & CGA_MODE_CONTROL_HIGH_RES_GRAPHICS) // 640x200 2 colors (1bpp, 640x200/8 = 16k)
                 {
-                    uint8_t fg_color = sys->display.cga.ram[(sys->display.crtc.start_address * 2) + ((y * columns + x) * 2 + 1)] & 0x0f;
-                    uint8_t bg_color = (sys->display.cga.ram[(sys->display.crtc.start_address * 2) + ((y * columns + x) * 2 + 1)] & 0xf0) >> 4;
-                    uint8_t character = sys->display.cga.ram[(sys->display.crtc.start_address * 2) + ((y * columns + x) * 2)];
+                    width = 640;
+                    height = 200;
+                    bpp = 1;
+                }
 
-                    int write_location_y = 8 * y;
-                    int write_location_x = 8 * x;
+                else // 320x200 4 colors (2 bits per color, 320x200/(8/2) = 16k)
+                {
+                    width = 320;
+                    height = 200;
+                    bpp = 2;
+                }
 
-                    int font_location = 8 * character;
-                            
-                    for(int font_y = 0; font_y < 8; font_y++)
+                memcpy(sys->display.surface->pixels, sys->display.cga.ram, (width * height) / (8 / bpp));
+            }
+
+            else
+            {
+                // text mode
+
+                // 80x25 (high res text, 640x200, 16 colors)
+
+                if (sys->display.cga.mode_ctrl_reg & CGA_MODE_CONTROL_HIGH_RES)
+                {
+                    width = 640;
+                    height = 200;
+                    columns = 80;
+                    rows = 25;
+
+                    bpp = 4;
+                }
+
+                else //320x200 4bpp text mode(40x25)
+                {
+                    width = 320;
+                    height = 200;
+                    columns = 40;
+                    rows = 25;
+
+                    bpp = 4;
+                }
+
+                for (int y = 0; y < rows; y++)
+                {
+                    for (int x = 0; x < columns; x++)
                     {
-                        for(int font_x = 0; font_x < 8; font_x += 2)
+                        uint8_t fg_color = sys->display.cga.ram[(sys->display.crtc.start_address * 2) + ((y * columns + x) * 2 + 1)] & 0x0f;
+                        uint8_t bg_color = (sys->display.cga.ram[(sys->display.crtc.start_address * 2) + ((y * columns + x) * 2 + 1)] & 0xf0) >> 4;
+                        uint8_t character = sys->display.cga.ram[(sys->display.crtc.start_address * 2) + ((y * columns + x) * 2)];
+
+                        int write_location_y = 8 * y;
+                        int write_location_x = 8 * x;
+
+                        int font_location = 8 * character;
+
+                        for (int font_y = 0; font_y < 8; font_y++)
                         {
-                            if((font[font_location + font_y] << font_x) & 0b10000000)
+                            for (int font_x = 0; font_x < 8; font_x += 2)
                             {
-                                ((uint8_t*)sys->display.surface->pixels)[(write_location_y + font_y) * (width/(8/bpp)) + (write_location_x / (8/bpp) + font_x / (8/bpp))] |= (fg_color << 4);
-                            }
+                                if ((font[font_location + font_y] << font_x) & 0b10000000)
+                                {
+                                    ((uint8_t*)sys->display.surface->pixels)[(write_location_y + font_y) * (width / (8 / bpp)) + (write_location_x / (8 / bpp) + font_x / (8 / bpp))] |= (fg_color << 4);
+                                }
 
-                            else
-                            {
-                                ((uint8_t*)sys->display.surface->pixels)[(write_location_y + font_y) * (width/(8/bpp)) + (write_location_x / (8/bpp) + font_x / (8/bpp))] |= (bg_color << 4);
-                            }
+                                else
+                                {
+                                    ((uint8_t*)sys->display.surface->pixels)[(write_location_y + font_y) * (width / (8 / bpp)) + (write_location_x / (8 / bpp) + font_x / (8 / bpp))] |= (bg_color << 4);
+                                }
 
-                            if((font[font_location + font_y] << font_x) & 0b01000000)
-                            {
-                                ((uint8_t*)sys->display.surface->pixels)[(write_location_y + font_y) * (width/(8/bpp)) + (write_location_x / (8/bpp) + font_x / (8/bpp))] |= fg_color;
-                            }
+                                if ((font[font_location + font_y] << font_x) & 0b01000000)
+                                {
+                                    ((uint8_t*)sys->display.surface->pixels)[(write_location_y + font_y) * (width / (8 / bpp)) + (write_location_x / (8 / bpp) + font_x / (8 / bpp))] |= fg_color;
+                                }
 
-                            else
-                            {
-                                ((uint8_t*)sys->display.surface->pixels)[(write_location_y + font_y) * (width/(8/bpp)) + (write_location_x / (8/bpp) + font_x / (8/bpp))] |= bg_color;
+                                else
+                                {
+                                    ((uint8_t*)sys->display.surface->pixels)[(write_location_y + font_y) * (width / (8 / bpp)) + (write_location_x / (8 / bpp) + font_x / (8 / bpp))] |= bg_color;
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            int cursor_y = sys->display.crtc.cursor_address / columns;
-            int cursor_x = sys->display.crtc.cursor_address % columns;
+                int cursor_y = sys->display.crtc.cursor_address / columns;
+                int cursor_x = sys->display.crtc.cursor_address % columns;
 
-            int write_location_y = cursor_y * 8;
-            int write_location_x = cursor_x * 4;
+                int write_location_y = cursor_y * 8;
+                int write_location_x = cursor_x * 4;
 
-            for(int y = write_location_y + sys->display.crtc.cursor_start_scan_line; y < write_location_y + sys->display.crtc.cursor_end_scan_line; y++)
-            {
-                for(int x = write_location_x; x < write_location_x + 8/(8/bpp); x++)
+                for (int y = write_location_y + sys->display.crtc.cursor_start_scan_line; y < write_location_y + sys->display.crtc.cursor_end_scan_line; y++)
                 {
-                    ((uint8_t*)sys->display.surface->pixels)[y * (width/(8/bpp)) + x] = 0xFF;
+                    for (int x = write_location_x; x < write_location_x + 8 / (8 / bpp); x++)
+                    {
+                        ((uint8_t*)sys->display.surface->pixels)[y * (width / (8 / bpp)) + x] = 0xFF;
+                    }
                 }
             }
         }
-    }
-    
-    screen_texture = SDL_CreateTextureFromSurface(sys->display.win_render, sys->display.surface);
-    SDL_SetTextureScaleMode(screen_texture, SDL_SCALEMODE_NEAREST);
-    SDL_RenderTexture(sys->display.win_render, screen_texture, NULL, NULL);
-    SDL_RenderPresent(sys->display.win_render);
-    SDL_DestroyTexture(screen_texture);
 
-    sys->display.last_tick = now_tick;
+        screen_texture = SDL_CreateTextureFromSurface(sys->display.win_render, sys->display.surface);
+        SDL_SetTextureScaleMode(screen_texture, SDL_SCALEMODE_NEAREST);
+        SDL_RenderTexture(sys->display.win_render, screen_texture, NULL, NULL);
+        SDL_RenderPresent(sys->display.win_render);
+        SDL_DestroyTexture(screen_texture);
+
+        sys->display.last_tick = now_tick;
     }
 }
