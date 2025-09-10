@@ -731,6 +731,16 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 
 		break;
 	}
+	case AAM:
+	{
+		uint8_t imm = read_address8(sys, cur_inst + 1, 0);
+		uint8_t temp = sys->cpu.ax.low;
+
+		sys->cpu.ax.high = temp / imm;
+		sys->cpu.ax.low = temp % imm;
+		ip_increase = 2;
+		break;
+	}
 	case ADC_AL_IMM8:
 	{
 		uint8_t imm = read_address8(sys, cur_inst + 1, 0);
