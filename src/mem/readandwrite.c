@@ -63,6 +63,7 @@ void write_address8(Sys8086* sys, uint32_t address, uint8_t value, _Bool port)
 			handle_ppi_port(sys, address, value, 0);
 			break;
 		}
+		case DMA_STATUS_COMMAND_PORT:
 		case DMA_CHANNEL_0_ADDRESS_PORT:
 		case DMA_CHANNEL_0_WORD_COUNT_PORT:
 		case DMA_CHANNEL_1_ADDRESS_PORT:
@@ -160,6 +161,7 @@ uint8_t read_address8(Sys8086* sys, uint32_t address, _Bool port)
 			return handle_ppi_port(sys, address, 0, 1);
 			break;
 		}
+		case DMA_STATUS_COMMAND_PORT:
 		case DMA_CHANNEL_0_ADDRESS_PORT:
 		case DMA_CHANNEL_0_WORD_COUNT_PORT:
 		case DMA_CHANNEL_1_ADDRESS_PORT:
