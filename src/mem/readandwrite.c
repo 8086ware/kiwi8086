@@ -27,9 +27,7 @@ void write_address8(Sys8086* sys, uint32_t address, uint8_t value, _Bool port)
 			break;
 		}
 		case PIC_MASTER_COMMAND_PORT:
-		case PIC_SLAVE_COMMAND_PORT:
 		case PIC_MASTER_DATA_PORT:
-		case PIC_SLAVE_DATA_PORT:
 		{
 			handle_pic_port(sys, address, value, 0);
 			break;
@@ -125,9 +123,7 @@ uint8_t read_address8(Sys8086* sys, uint32_t address, _Bool port)
 		switch (address)
 		{
 		case PIC_MASTER_COMMAND_PORT:
-		case PIC_SLAVE_COMMAND_PORT:
 		case PIC_MASTER_DATA_PORT:
-		case PIC_SLAVE_DATA_PORT:
 		{
 			return handle_pic_port(sys, address, 0, 1);
 			break;
