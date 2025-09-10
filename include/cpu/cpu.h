@@ -261,6 +261,8 @@ enum CPU_Opcode
 
 	LAHF = 0x9F,
 
+	LDS = 0xC5,
+	LEA = 0x8D,
 	LES = 0xC4,
 
 	LOOP_REL8 = 0xE2,
