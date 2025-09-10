@@ -477,7 +477,6 @@ void or16(Sys8086* sys, uint16_t* value, int16_t or)
 	cpu_modify_flag_sign(&sys->cpu, *value, 1);
 }
 
-
 void and8(Sys8086* sys, uint8_t* value, uint8_t and)
 {
 	(*value) &= and;
@@ -572,4 +571,236 @@ void neg16(Sys8086* sys, uint16_t* value)
 	cpu_modify_flag_parity(&sys->cpu, (*value));
 	cpu_modify_flag_sign(&sys->cpu, (*value), 1);
 	cpu_modify_flag_overflow(&sys->cpu, 0, old_val, (*value), 1);
+}
+
+void rol8(Sys8086* sys, uint8_t* value, uint8_t amount)
+{
+	(*value) = (*value << amount) | (*value >> (8 - amount));
+	
+	if (*value & 0x80)
+	{
+		sys->cpu.flag.whole |= FLAG_CARRY;
+	}
+
+	else
+	{
+		sys->cpu.flag.whole &= ~FLAG_CARRY;
+	}
+
+	if (amount == 1)
+	{
+		if (((*value & 0x80) >> 8) ^ (sys->cpu.flag.whole & FLAG_CARRY))
+		{
+			sys->cpu.flag.whole |= FLAG_OVERFLOW;
+		}
+
+		else
+		{
+			sys->cpu.flag.whole &= ~FLAG_OVERFLOW;
+		}
+	}
+}
+
+void ror8(Sys8086* sys, uint8_t* value, uint8_t amount)
+{
+	(*value) = (*value >> amount) | (*value << (8 - amount));
+
+	if (*value & 0x1)
+	{
+		sys->cpu.flag.whole |= FLAG_CARRY;
+	}
+
+	else
+	{
+		sys->cpu.flag.whole &= ~FLAG_CARRY;
+	}
+
+	if (amount == 1)
+	{
+		if (((*value & 0x80) >> 8) ^ ((*value & 0x40) >> 7))
+		{
+			sys->cpu.flag.whole |= FLAG_OVERFLOW;
+		}
+
+		else
+		{
+			sys->cpu.flag.whole &= ~FLAG_OVERFLOW;
+		}
+	}
+}
+
+void rcl8(Sys8086* sys, uint8_t* value, uint8_t amount)
+{
+	uint8_t carry = sys->cpu.flag.whole & FLAG_CARRY;
+
+	(*value) = (*value << (amount + carry)) | (*value >> (8 - (amount + carry)));
+
+	if (*value & 0x80)
+	{
+		sys->cpu.flag.whole |= FLAG_CARRY;
+	}
+
+	else
+	{
+		sys->cpu.flag.whole &= ~FLAG_CARRY;
+	}
+
+	if (amount == 1)
+	{
+		if (((*value & 0x80) >> 8) ^ (sys->cpu.flag.whole & FLAG_CARRY))
+		{
+			sys->cpu.flag.whole |= FLAG_OVERFLOW;
+		}
+
+		else
+		{
+			sys->cpu.flag.whole &= ~FLAG_OVERFLOW;
+		}
+	}
+}
+
+void rcr8(Sys8086* sys, uint8_t* value, uint8_t amount)
+{
+	uint8_t carry = sys->cpu.flag.whole & FLAG_CARRY;
+
+	(*value) = (*value >> (amount + carry)) | (*value << (8 - (amount + carry)));
+
+	if (*value & 0x1)
+	{
+		sys->cpu.flag.whole |= FLAG_CARRY;
+	}
+
+	else
+	{
+		sys->cpu.flag.whole &= ~FLAG_CARRY;
+	}
+
+	if (amount == 1)
+	{
+		if (((*value & 0x80) >> 8) ^ ((*value & 0x40) >> 7))
+		{
+			sys->cpu.flag.whole |= FLAG_OVERFLOW;
+		}
+
+		else
+		{
+			sys->cpu.flag.whole &= ~FLAG_OVERFLOW;
+		}
+	}
+}
+
+void rol16(Sys8086* sys, uint16_t* value, uint8_t amount)
+{
+	(*value) = (*value << amount) | (*value >> (16 - amount));
+
+	if (*value & 0x8000)
+	{
+		sys->cpu.flag.whole |= FLAG_CARRY;
+	}
+
+	else
+	{
+		sys->cpu.flag.whole &= ~FLAG_CARRY;
+	}
+
+	if (amount == 1)
+	{
+		if (((*value & 0x8000) >> 8) ^ (sys->cpu.flag.whole & FLAG_CARRY))
+		{
+			sys->cpu.flag.whole |= FLAG_OVERFLOW;
+		}
+
+		else
+		{
+			sys->cpu.flag.whole &= ~FLAG_OVERFLOW;
+		}
+	}
+}
+
+void ror16(Sys8086* sys, uint16_t* value, uint8_t amount)
+{
+	(*value) = (*value >> amount) | (*value << (16 - amount));
+
+	if (*value & 0x1)
+	{
+		sys->cpu.flag.whole |= FLAG_CARRY;
+	}
+
+	else
+	{
+		sys->cpu.flag.whole &= ~FLAG_CARRY;
+	}
+
+	if (amount == 1)
+	{
+		if (((*value & 0x8000) >> 8) ^ ((*value & 0x4000) >> 7))
+		{
+			sys->cpu.flag.whole |= FLAG_OVERFLOW;
+		}
+
+		else
+		{
+			sys->cpu.flag.whole &= ~FLAG_OVERFLOW;
+		}
+	}
+}
+
+void rcl16(Sys8086* sys, uint16_t* value, uint8_t amount)
+{
+	uint8_t carry = sys->cpu.flag.whole & FLAG_CARRY;
+
+	(*value) = (*value << (amount + carry)) | (*value >> (16 - (amount + carry)));
+
+	if (*value & 0x8000)
+	{
+		sys->cpu.flag.whole |= FLAG_CARRY;
+	}
+
+	else
+	{
+		sys->cpu.flag.whole &= ~FLAG_CARRY;
+	}
+
+	if (amount == 1)
+	{
+		if (((*value & 0x8000) >> 8) ^ (sys->cpu.flag.whole & FLAG_CARRY))
+		{
+			sys->cpu.flag.whole |= FLAG_OVERFLOW;
+		}
+
+		else
+		{
+			sys->cpu.flag.whole &= ~FLAG_OVERFLOW;
+		}
+	}
+}
+
+void rcr16(Sys8086* sys, uint16_t* value, uint8_t amount)
+{
+	uint8_t carry = sys->cpu.flag.whole & FLAG_CARRY;
+
+	(*value) = (*value >> (amount + carry)) | (*value << (16 - (amount + carry)));
+
+	if (*value & 0x1)
+	{
+		sys->cpu.flag.whole |= FLAG_CARRY;
+	}
+
+	else
+	{
+		sys->cpu.flag.whole &= ~FLAG_CARRY;
+	}
+
+	if (amount == 1)
+	{
+		if (((*value & 0x8000) >> 8) ^ ((*value & 0x4000) >> 7))
+		{
+			sys->cpu.flag.whole |= FLAG_OVERFLOW;
+		}
+
+		else
+		{
+			sys->cpu.flag.whole &= ~FLAG_OVERFLOW;
+		}
+	}
 }

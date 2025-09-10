@@ -61,6 +61,10 @@ enum CPU_Group_Opcode_83
 
 enum CPU_Group_Opcode_D0
 {
+	ROL_RM8_1 = 0x0,
+	ROR_RM8_1 = 0x1,
+	RCL_RM8_1 = 0x2,
+	RCR_RM8_1 = 0x3,
 	SAL_RM8_1 = 0x4, // Opcode group D0
 	SHR_RM8_1 = 0x5, // Opcode group D0
 	SAR_RM8_1 = 0x7, // Opcode group D0
@@ -68,6 +72,10 @@ enum CPU_Group_Opcode_D0
 
 enum CPU_Group_Opcode_D1
 {
+	ROL_RM16_1 = 0x0,
+	ROR_RM16_1 = 0x1,
+	RCL_RM16_1 = 0x2,
+	RCR_RM16_1 = 0x3,
 	SAL_RM16_1 = 0x4, // Opcode group D1
 	SHR_RM16_1 = 0x5, // Opcode group D1
 	SAR_RM16_1 = 0x7, // Opcode group D1
@@ -75,6 +83,10 @@ enum CPU_Group_Opcode_D1
 
 enum CPU_Group_Opcode_D2
 {
+	ROL_RM8_CL = 0x0,
+	ROR_RM8_CL = 0x1,
+	RCL_RM8_CL = 0x2,
+	RCR_RM8_CL = 0x3,
 	SAL_RM8_CL = 0x4, // Opcode group D2
 	SHR_RM8_CL = 0x5, // Opcode group D2
 	SAR_RM8_CL = 0x7, // Opcode group D2
@@ -82,6 +94,10 @@ enum CPU_Group_Opcode_D2
 
 enum CPU_Group_Opcode_D3
 {
+	ROL_RM16_CL = 0x0,
+	ROR_RM16_CL = 0x1,
+	RCL_RM16_CL = 0x2,
+	RCR_RM16_CL = 0x3,
 	// Same as SHL
 	SAL_RM16_CL = 0x4, // Opcode group D3
 	SHR_RM16_CL = 0x5, // Opcode group D3

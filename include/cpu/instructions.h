@@ -46,5 +46,15 @@ void xor16(Sys8086* sys, uint16_t* value, uint16_t xor);
 void neg8(Sys8086* sys, uint8_t* value);
 void neg16(Sys8086* sys, uint16_t* value);
 
+void rol8(Sys8086* sys, uint8_t* value, uint8_t amount);
+void ror8(Sys8086* sys, uint8_t* value, uint8_t amount);
+void rcl8(Sys8086* sys, uint8_t* value, uint8_t amount);
+void rcr8(Sys8086* sys, uint8_t* value, uint8_t amount);
+
+void rol16(Sys8086* sys, uint16_t* value, uint8_t amount);
+void ror16(Sys8086* sys, uint16_t* value, uint8_t amount);
+void rcl16(Sys8086* sys, uint16_t* value, uint8_t amount);
+void rcr16(Sys8086* sys, uint16_t* value, uint8_t amount);
+
 #endif
 

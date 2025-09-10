@@ -265,6 +265,34 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 		enum CPU_Group_Opcode_D0 group_opcode_instruction = (read_address8(sys, cur_inst + 1, 0) & 0b00111000) >> 3;
 		switch (group_opcode_instruction)
 		{
+		case ROL_RM8_1:
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+
+			rol8(sys, regmem, 1);
+			break;
+		}
+		case ROR_RM8_1:
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+
+			ror8(sys, regmem, 1);
+			break;
+		}
+		case RCL_RM8_1:
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+
+			rcl8(sys, regmem, 1);
+			break;
+		}
+		case RCR_RM8_1:
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+
+			rcr8(sys, regmem, 1);
+			break;
+		}
 		case SAL_RM8_1: // D0 mm
 		{
 			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
@@ -301,6 +329,34 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 		enum CPU_Group_Opcode_D1 group_opcode_instruction = (read_address8(sys, cur_inst + 1, 0) & 0b00111000) >> 3;
 		switch (group_opcode_instruction)
 		{
+		case ROL_RM16_1:
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+
+			rol16(sys, regmem, 1);
+			break;
+		}
+		case ROR_RM16_1:
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+
+			ror16(sys, regmem, 1);
+			break;
+		}
+		case RCL_RM16_1:
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+
+			rcl16(sys, regmem, 1);
+			break;
+		}
+		case RCR_RM16_1:
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+
+			rcr16(sys, regmem, 1);
+			break;
+		}
 		case SAL_RM16_1: // D0 mm
 		{
 			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
@@ -337,6 +393,34 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 		enum CPU_Group_Opcode_D2 group_opcode_instruction = (read_address8(sys, cur_inst + 1, 0) & 0b00111000) >> 3;
 		switch (group_opcode_instruction)
 		{
+		case ROL_RM8_CL:
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+
+			rol8(sys, regmem, sys->cpu.cx.low);
+			break;
+		}
+		case ROR_RM8_CL:
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+
+			ror8(sys, regmem, sys->cpu.cx.low);
+			break;
+		}
+		case RCL_RM8_CL:
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+
+			rcl8(sys, regmem, sys->cpu.cx.low);
+			break;
+		}
+		case RCR_RM8_CL:
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+
+			rcr8(sys, regmem, sys->cpu.cx.low);
+			break;
+		}
 		case SAL_RM8_CL: // D0 mm
 		{
 			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
@@ -372,6 +456,34 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 		enum CPU_Group_Opcode_D3 group_opcode_instruction = (read_address8(sys, cur_inst + 1, 0) & 0b00111000) >> 3;
 		switch (group_opcode_instruction)
 		{
+		case ROL_RM16_CL:
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+
+			rol16(sys, regmem, sys->cpu.cx.low);
+			break;
+		}
+		case ROR_RM16_CL:
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+
+			ror16(sys, regmem, sys->cpu.cx.low);
+			break;
+		}
+		case RCL_RM16_CL:
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+
+			rcl16(sys, regmem, sys->cpu.cx.low);
+			break;
+		}
+		case RCR_RM16_CL:
+		{
+			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+
+			rcr16(sys, regmem, sys->cpu.cx.low);
+			break;
+		}
 		case SAL_RM16_CL: // D0 mm
 		{
 			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
