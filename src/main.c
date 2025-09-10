@@ -2,7 +2,7 @@
 #include <SDL3/SDL.h>
 #include "memory.h"
 #include <stdlib.h>
-#include "ps2/keyboard.h"
+#include "keyboard.h"
 
 int main(int argc, char** argv) {
 	if (argc < 2)
