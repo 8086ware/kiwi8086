@@ -1357,7 +1357,7 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
 
 		*(uint16_t*)reg = *(uint16_t*)regmem;
-		((uint16_t*)regmem)++;
+		(uint16_t*)regmem++;
 		sys->cpu.ds.whole = *(uint16_t*)regmem;
 
 		break;
@@ -1375,7 +1375,7 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
 
 		*(uint16_t*)reg = *(uint16_t*)regmem;
-		((uint16_t*)regmem)++;
+		(uint16_t*)regmem++;
 		sys->cpu.es.whole = *(uint16_t*)regmem;
 
 		break;
