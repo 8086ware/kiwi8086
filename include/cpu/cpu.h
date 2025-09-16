@@ -208,6 +208,8 @@ enum CPU_Opcode
 	CMPSB = 0xA6,
 	CMPSW = 0xA7,
 
+	CWD = 0x99,
+
 	// Affects flag register
 	DEC_AX = 0x48,
 	DEC_CX = DEC_AX + 1,

@@ -1032,6 +1032,16 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 		sys->cpu.zero_flag_check = 1;
 		break;
 	}
+	case CWD:
+	{
+		int32_t double_word = (int32_t)sys->cpu.ax.whole;
+		
+		sys->cpu.dx.whole = (uint16_t)(double_word >> 16);
+		sys->cpu.ax.whole = (uint16_t)(double_word & 0x0000ffff);
+
+		ip_increase = 1;
+		break;
+	}
 	// 0x48 + i
 	case DEC_AX:
 	case DEC_CX:
