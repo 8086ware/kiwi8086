@@ -164,6 +164,7 @@ enum CPU_Opcode
 	GROUP_OPCODE_FE = 0xFE,
 	GROUP_OPCODE_FF = 0xFF,
 
+	AAD = 0xD5,
 	AAM = 0xD4,
 	ADC_AL_IMM8 = 0x14,
 	ADC_AX_IMM16 = 0x15,

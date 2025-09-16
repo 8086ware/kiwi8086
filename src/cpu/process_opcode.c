@@ -731,6 +731,22 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 
 		break;
 	}
+	case AAD:
+	{
+		uint8_t imm = read_address8(sys, cur_inst + 1, 0);
+		uint8_t tempal = sys->cpu.ax.low;
+		uint8_t tempah = sys->cpu.ax.high;
+
+		sys->cpu.ax.low = (tempal + (tempah * imm)) & 0xff;
+		sys->cpu.ax.high = 0;
+		
+		cpu_modify_flag_sign(&sys->cpu, sys->cpu.ax.low, 0);
+		cpu_modify_flag_zero(&sys->cpu, sys->cpu.ax.low);
+		cpu_modify_flag_parity(&sys->cpu, sys->cpu.ax.low);
+
+		ip_increase = 2;
+		break;
+	}
 	case AAM:
 	{
 		uint8_t imm = read_address8(sys, cur_inst + 1, 0);
