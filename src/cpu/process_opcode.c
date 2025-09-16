@@ -2134,6 +2134,13 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 		mov16(sys, regmem, &temp);
 		break;
 	}
+	case XLAT:
+	{
+		uint16_t temp = (uint16_t)sys->cpu.ax.low;
+		sys->cpu.ax.low = read_address8(sys, seg_mem(data_seg->whole, sys->cpu.bx.whole + temp), 0);
+		ip_increase = 1;
+		break;
+	}
 	case XOR_AL_IMM8:
 	{
 		uint8_t imm = read_address8(sys, cur_inst + 1, 0);

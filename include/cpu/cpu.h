@@ -399,6 +399,8 @@ enum CPU_Opcode
 	XCHG_RM8_R8 = 0x86,
 	XCHG_RM16_R16 = 0x87,
 
+	XLAT = 0xD7,
+
 	XOR_AL_IMM8 = 0x34,
 	XOR_AX_IMM16 = 0x35,
 	XOR_RM8_R8 = 0x30,
