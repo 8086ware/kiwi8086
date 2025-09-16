@@ -1937,6 +1937,44 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 		sub16(sys, reg, (*(uint16_t*)regmem));
 		break;
 	}
+	case SCASB:
+	{
+		cmp8(sys, sys->cpu.ax.low, read_address8(sys, seg_mem(sys->cpu.es.whole, sys->cpu.di.whole), 0));
+
+		if(sys->cpu.flag.whole & FLAG_DIRECTION)
+		{
+			sys->cpu.di.whole--;
+		}
+
+		else
+		{
+			sys->cpu.di.whole++;
+		}
+
+		sys->cpu.zero_flag_check = 1;
+
+		ip_increase = 1;
+		break;
+	}
+	case SCASW:
+	{
+		cmp16(sys, sys->cpu.ax.whole, read_address16(sys, seg_mem(sys->cpu.es.whole, sys->cpu.di.whole), 0));
+
+		if(sys->cpu.flag.whole & FLAG_DIRECTION)
+		{
+			sys->cpu.di.whole -= 2;
+		}
+
+		else
+		{
+			sys->cpu.di.whole += 2;
+		}
+
+		sys->cpu.zero_flag_check = 1;
+
+		ip_increase = 1;
+		break;
+	}
 	case STC:
 	{
 		sys->cpu.flag.whole |= FLAG_CARRY;
