@@ -20,11 +20,16 @@ void pic_check_int(Sys8086* sys)
 					if (sys->pic_master.isr & (1 << i))
 					{
 						in_service = 1;
-						break;
 					}
 
-					sys->pic_master.isr |= (1 << i);
-					sys->pic_master.irr &= ~(1 << i);
+					else
+					{
+						sys->pic_master.isr |= (1 << i);
+						sys->pic_master.irr &= ~(1 << i);
+
+						vector_offset = sys->pic_master.vector_offset * 4 + i * 4;
+					}
+
 					break;
 				}
 			}
