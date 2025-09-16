@@ -9,6 +9,7 @@ uint8_t handle_dma_port(Sys8086* sys, uint16_t port, uint8_t value, _Bool read)
 	{
 		if (read) // status
 		{
+			sys->dma.status |= (sys->dma.dreq << 4);
 			return sys->dma.status;
 		}
 
@@ -106,6 +107,70 @@ uint8_t handle_dma_port(Sys8086* sys, uint16_t port, uint8_t value, _Bool read)
 			}
 		}
 
+		break;
+	}
+	case DMA_REQUEST_PORT:
+	{
+		if(!read)
+		{
+			int channel = value & DMA_REQUEST_FLAG_SELECT_CHANNEL;
+
+			if(value & DMA_REQUEST_FLAG_SET_REQUEST)
+			{
+				sys->dma.dreq |= (1 << (channel));
+			}
+
+			else
+			{
+				sys->dma.dreq &= ~(1 << (channel));
+			}
+
+		}
+		break;
+	}
+	case DMA_MASK_PORT:
+	{
+		if(!read)
+		{
+			int channel = value & DMA_SINGLE_MASK_FLAG_SELECT_CHANNEL;
+
+			if(value & DMA_SINGLE_MASK_SET_MASK)
+			{
+				sys->dma.dmask |= (1 << (channel));
+			}
+
+			else
+			{
+				sys->dma.dmask &= ~(1 << (channel));
+			}
+
+		}
+		break;
+	}
+	case DMA_MASTER_CLEAR_TEMP_PORT:
+	{
+		if(!read)
+		{
+			sys->dma.flip_flop = 0;
+			sys->dma.status = 0;
+			sys->dma.dmask = 0xF;
+		}
+		break;
+	}
+	case DMA_CLEAR_FLIP_FLOP_PORT:
+	{
+		if(!read)
+		{
+			sys->dma.flip_flop = 0;
+		}
+		break;
+	}
+	case DMA_CLEAR_MASK_PORT:
+	{
+		if(!read)
+		{
+			sys->dma.dmask = 0;
+		}
 		break;
 	}
 	}
