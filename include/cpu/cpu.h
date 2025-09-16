@@ -166,6 +166,8 @@ enum CPU_Opcode
 
 	AAD = 0xD5,
 	AAM = 0xD4,
+	AAS = 0x3F,
+
 	ADC_AL_IMM8 = 0x14,
 	ADC_AX_IMM16 = 0x15,
 	ADC_RM8_R8 = 0x10,

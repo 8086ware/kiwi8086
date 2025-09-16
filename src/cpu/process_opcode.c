@@ -757,6 +757,27 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 		ip_increase = 2;
 		break;
 	}
+	case AAS:
+	{
+		if((sys->cpu.ax.low & 0xf) > 9 || sys->cpu.flag.whole & FLAG_HALF_CARRY)
+		{
+			sys->cpu.ax.whole -= 6;
+			sys->cpu.ax.high -= 1;
+			sys->cpu.flag.whole |= FLAG_HALF_CARRY;
+			sys->cpu.flag.whole |= FLAG_CARRY;
+			sys->cpu.ax.low &= 0xf;
+		}
+
+		else
+		{
+			sys->cpu.flag.whole &= ~FLAG_HALF_CARRY;
+			sys->cpu.flag.whole &= ~FLAG_CARRY;
+			sys->cpu.ax.low &= 0xf;
+		}
+
+		ip_increase = 1;
+		break;
+	}
 	case ADC_AL_IMM8:
 	{
 		uint8_t imm = read_address8(sys, cur_inst + 1, 0);
