@@ -1042,6 +1042,44 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 		ip_increase = 1;
 		break;
 	}
+	case DAS:
+	{
+		uint8_t old_al = sys->cpu.ax.low;
+		_Bool old_cf = sys->cpu.flag.whole & FLAG_CARRY;
+
+		sys->cpu.flag.whole &= ~FLAG_CARRY;
+
+		if((sys->cpu.ax.low & 0xf) > 9 || sys->cpu.flag.whole & FLAG_HALF_CARRY)
+		{
+			sys->cpu.ax.low -= 6;
+			
+			if(old_cf)
+			{
+				sys->cpu.flag.whole |= FLAG_CARRY;
+			}
+
+			else
+			{
+				sys->cpu.flag.whole &= ~FLAG_CARRY;
+			}
+			
+			sys->cpu.flag.whole |= FLAG_HALF_CARRY;
+		}
+
+		else
+		{
+			sys->cpu.flag.whole &= ~FLAG_HALF_CARRY;
+		}
+
+		if((old_al > 0x99) || old_cf)
+		{
+			sys->cpu.ax.low -= 0x60;
+			sys->cpu.flag.whole |= FLAG_CARRY;
+		}
+
+		ip_increase = 1;
+		break;
+	}
 	// 0x48 + i
 	case DEC_AX:
 	case DEC_CX:

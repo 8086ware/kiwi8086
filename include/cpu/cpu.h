@@ -210,6 +210,8 @@ enum CPU_Opcode
 
 	CWD = 0x99,
 
+	DAS = 0x2F,
+
 	// Affects flag register
 	DEC_AX = 0x48,
 	DEC_CX = DEC_AX + 1,
