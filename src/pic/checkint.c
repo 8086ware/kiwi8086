@@ -4,8 +4,7 @@
 
 void pic_check_int(Sys8086* sys)
 {
-	_Bool in_service = 0;
-	_Bool slave = 0;
+	_Bool interrupt_go = 0;
 
 	uint16_t vector_offset = 0;
 
@@ -15,26 +14,23 @@ void pic_check_int(Sys8086* sys)
 		{
 			for (int i = 0; i < 8; i++)
 			{
+				if (sys->pic_master.isr & (1 << i))
+				{
+					break;
+				}
+
 				if (sys->pic_master.irr & (1 << i) && (sys->pic_master.imr & (1 << i)) == 0)
 				{
-					if (sys->pic_master.isr & (1 << i))
-					{
-						in_service = 1;
-					}
+					sys->pic_master.isr |= (1 << i);
+					sys->pic_master.irr &= ~(1 << i);
 
-					else
-					{
-						sys->pic_master.isr |= (1 << i);
-						sys->pic_master.irr &= ~(1 << i);
-
-						vector_offset = sys->pic_master.vector_offset * 4 + i * 4;
-					}
-
+					vector_offset = sys->pic_master.vector_offset * 4 + i * 4;
+					interrupt_go = 1;
 					break;
 				}
 			}
 
-			if (!in_service)
+			if (interrupt_go)
 			{
 				push(sys, sys->cpu.flag.whole);
 				push(sys, sys->cpu.cs.whole);
