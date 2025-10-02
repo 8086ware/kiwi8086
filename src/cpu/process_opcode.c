@@ -2124,7 +2124,7 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	}
 	case TEST_AX_IMM16:
 	{
-		uint16_t temp = sys->cpu.ax.low;
+		uint16_t temp = sys->cpu.ax.whole;
 		uint16_t imm = read_address16(sys, cur_inst + 1, 0);
 		and16(sys, &temp, imm);
 		ip_increase = 3;
