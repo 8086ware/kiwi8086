@@ -918,8 +918,16 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	}
 	case CBW:
 	{
-		int16_t new_ax = sys->cpu.ax.low;
-		sys->cpu.ax.whole = new_ax;
+		if ((int8_t)sys->cpu.ax.low < 0)
+		{
+			sys->cpu.ax.high = 0xFF;
+		}
+
+		else
+		{
+			sys->cpu.ax.high = 0;
+		}
+
 		ip_increase = 1;
 		break;
 	}
@@ -1034,10 +1042,15 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	}
 	case CWD:
 	{
-		int32_t double_word = (int32_t)sys->cpu.ax.whole;
+		if ((int16_t)sys->cpu.ax.whole < 0)
+		{
+			sys->cpu.dx.whole = 0xFFFF;
+		}
 		
-		sys->cpu.dx.whole = (uint16_t)(double_word >> 16);
-		sys->cpu.ax.whole = (uint16_t)(double_word & 0x0000ffff);
+		else
+		{
+			sys->cpu.dx.whole = 0;
+		}
 
 		ip_increase = 1;
 		break;
