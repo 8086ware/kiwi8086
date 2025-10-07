@@ -2096,36 +2096,29 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	case XOR_RM8_R8:
 	{
 		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-
 		xor8(sys, regmem, *(uint8_t*)reg);
 		break;
 	}
 	case XOR_RM16_R16:
 	{
 		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
 		xor16(sys, regmem, *(uint16_t*)reg);
 		break;
 	}
 	case XOR_R8_RM8:
 	{
 		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-
 		xor8(sys, reg, *(uint8_t*)regmem);
 		break;
 	}
 	case XOR_R16_RM16:
 	{
 		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
 		xor16(sys, reg, *(uint16_t*)regmem);
 		break;
 	}
 	default:
-		if (opcode != PREFIX_ES && opcode != PREFIX_DS && opcode != PREFIX_CS && opcode != PREFIX_SS && opcode != PREFIX_REPNE && opcode != PREFIX_REP_OR_REPE)
-		{
 			printf("Unknown Opcode %x\n", opcode);
-		}
 
 		ip_increase++;
 		break;
