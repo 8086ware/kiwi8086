@@ -1325,6 +1325,7 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 			ip_increase += 2;
 		}
 
+		break;
 	}
 	case JNE_REL8: // 75 ii // Same as JNZ_REL8
 	{
