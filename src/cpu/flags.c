@@ -86,13 +86,13 @@ void cpu_modify_flag_zero(CPU* cpu, uint16_t val)
 	}
 }
 
-void cpu_modify_flag_sign(CPU* cpu, uint16_t val, _Bool word)
+void cpu_modify_flag_sign(CPU* cpu, int16_t val, _Bool word)
 {
-	uint8_t val8 = val;
+	int8_t val8 = val;
 
 	if (word)
 	{
-		if ((val & 0b1000000000000000) == 0b1000000000000000)
+		if ((val & 0x8000))
 		{
 			cpu->flag.whole |= FLAG_SIGN;
 		}
@@ -105,7 +105,7 @@ void cpu_modify_flag_sign(CPU* cpu, uint16_t val, _Bool word)
 
 	else
 	{
-		if ((val8 & 0b10000000) == 0b10000000)
+		if ((val8 & 0x80))
 		{
 			cpu->flag.whole |= FLAG_SIGN;
 		}
@@ -126,9 +126,9 @@ void cpu_modify_flag_overflow(CPU* cpu, int16_t op1, int16_t op2, int16_t result
 
 	if (word)
 	{
-		op1_neg = op1 & 0b1000000000000000;
-		op2_neg = op2 & 0b1000000000000000;
-		result_neg = result & 0b1000000000000000;
+		op1_neg = op1 & 0x8000;
+		op2_neg = op2 & 0x8000;
+		result_neg = result & 0x8000;
 	}
 
 	else
@@ -137,9 +137,9 @@ void cpu_modify_flag_overflow(CPU* cpu, int16_t op1, int16_t op2, int16_t result
 		int8_t op2_8 = op2;
 		int8_t result_8 = result;
 
-		op1_neg = op1_8 & 0b10000000;
-		op2_neg = op2_8 & 0b10000000;
-		result_neg = result_8 & 0b10000000;
+		op1_neg = op1_8 & 0x80;
+		op2_neg = op2_8 & 0x80;
+		result_neg = result_8 & 0x80;
 	}
 
 	// -127 to 127 (example)
