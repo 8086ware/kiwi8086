@@ -566,7 +566,7 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 		case DEC_RM16: // FF mm dd dd
 		{
 			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-			inc16(sys, regmem);
+			dec16(sys, regmem);
 			break;
 		}
 		// 0x2
