@@ -30,68 +30,48 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	{
 		enum CPU_Group_Opcode_80 group_opcode_instruction = (read_address8(sys, cur_inst + 1, 0) & 0b00111000) >> 3;
 
+		uint8_t imm = 0;
+		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 0, 0, 0);
+
 		switch (group_opcode_instruction)
 		{
 		case ADD_RM8_IMM8: // 80 mm ii
 		{
-			uint8_t imm = 0;
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 0, 0, 0);
-
 			add8(sys, regmem, imm);
 			break;
 		}
 		case ADC_RM8_IMM8:
 		{
-			uint8_t imm = 0;
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 0, 0, 0);
-			imm += sys->cpu.flag.whole & FLAG_CARRY;
-			add8(sys, regmem, imm);
+			add8(sys, regmem, imm + (uint8_t)(sys->cpu.flag.whole & FLAG_CARRY));
 			break;
 		}
 		case SBB_RM8_IMM8:
 		{
-			uint8_t imm = 0;
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 0, 0, 0);
-			imm += sys->cpu.flag.whole & FLAG_CARRY;
-			sub8(sys, regmem, imm);
+			sub8(sys, regmem, imm + (uint8_t)(sys->cpu.flag.whole & FLAG_CARRY));
 			break;
 		}
 		case AND_RM8_IMM8:
 		{
-			uint8_t imm = 0;
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 0, 0, 0);
 			and8(sys, regmem, imm);
 			break;
 		}
 		case CMP_RM8_IMM8: // 80 mm ii
 		{
-			uint8_t imm = 0;
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 0, 0, 0);
-
 			cmp8(sys, *(uint8_t*)regmem, imm);
 			break;
 		}
 		case SUB_RM8_IMM8:
 		{
-			uint8_t imm = 0;
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 0, 0, 0);
-
 			sub8(sys, regmem, imm);
 			break;
 		}
 		case OR_RM8_IMM8:
 		{
-			uint8_t imm = 0;
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 0, 0, 0);
-
 			or8(sys, regmem, imm);
 			break;
 		}
 		case XOR_RM8_IMM8:
 		{
-			uint8_t imm = 0;
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 0, 0, 0);
-
 			xor8(sys, regmem, imm);
 			break;
 		}
@@ -107,69 +87,48 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	case GROUP_OPCODE_81:
 	{
 		enum CPU_Group_Opcode_81 group_opcode_instruction = (read_address8(sys, cur_inst + 1, 0) & 0b00111000) >> 3;
+		uint16_t imm = 0;
+		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 1, 0);
+
 		switch (group_opcode_instruction)
 		{
 		case ADD_RM16_IMM16: // 81 mm ii ii
 		{
-			uint16_t imm = 0;
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 1, 0);
-
 			add16(sys, regmem, imm);
 			break;
 		}
 		case ADC_RM16_IMM16:
 		{
-			uint16_t imm = 0;
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 1, 0);
-			imm += sys->cpu.flag.whole & FLAG_CARRY;
-			add16(sys, regmem, imm);
+			add16(sys, regmem, imm + sys->cpu.flag.whole & FLAG_CARRY);
 			break;
 		}
 		case SBB_RM16_IMM16:
 		{
-			uint16_t imm = 0;
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 1, 0);
-			imm += sys->cpu.flag.whole & FLAG_CARRY;
-			sub16(sys, regmem, imm);
+			sub16(sys, regmem, imm + sys->cpu.flag.whole & FLAG_CARRY);
 			break;
 		}
 		case AND_RM16_IMM16:
 		{
-			uint16_t imm = 0;
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 1, 0);
-
 			and16(sys, regmem, imm);
 			break;
 		}
 		case CMP_RM16_IMM16: // 81 mm ii ii
 		{
-			uint16_t imm = 0;
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 1, 0);
-
 			cmp16(sys, *(uint16_t*)regmem, imm);
 			break;
 		}
 		case SUB_RM16_IMM16:
 		{
-			uint8_t imm = 0;
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 1, 0);
-
 			sub16(sys, regmem, imm);
 			break;
 		}
 		case OR_RM16_IMM16:
 		{
-			uint8_t imm = 0;
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 1, 0);
-
 			or16(sys, regmem, imm);
 			break;
 		}
 		case XOR_RM16_IMM16:
 		{
-			uint8_t imm = 0;
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 1, 0);
-
 			xor16(sys, regmem, imm);
 			break;
 		}
@@ -185,69 +144,49 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	case GROUP_OPCODE_83:
 	{
 		enum CPU_Group_Opcode_83 group_opcode_instruction = (read_address8(sys, cur_inst + 1, 0) & 0b00111000) >> 3;
+
+		uint8_t imm = 0;
+		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 0, 0);
+
 		switch (group_opcode_instruction)
 		{
 		case ADD_RM16_IMM8:
 		{
-			uint16_t imm = 0;
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 0, 0);
-
 			add16(sys, regmem, imm);
 			break;
 		}
 		case ADC_RM16_IMM8:
 		{
-			uint8_t imm = 0;
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 0, 0);
-			imm += sys->cpu.flag.whole & FLAG_CARRY;
-			add16(sys, regmem, imm);
+			add16(sys, regmem, imm + (uint8_t)(sys->cpu.flag.whole & FLAG_CARRY));
 			break;
 		}
 		case SBB_RM16_IMM8:
 		{
-			uint8_t imm = 0;
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 0, 0);
-			imm += sys->cpu.flag.whole & FLAG_CARRY;
-			sub16(sys, regmem, imm);
+			sub16(sys, regmem, imm + (uint8_t)(sys->cpu.flag.whole & FLAG_CARRY));
 			break;
 		}
 		case AND_RM16_IMM8:
 		{
-			uint16_t imm = 0;
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 0, 0);
-
 			and16(sys, regmem, imm);
 			break;
 		}
 		case CMP_RM16_IMM8: // 83 mm ii
 		{
-			int16_t imm = 0;
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 0, 0);
-
 			cmp16(sys, *(uint16_t*)regmem, imm);
 			break;
 		}
 		case SUB_RM16_IMM8:
 		{
-			uint16_t imm = 0;
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 0, 0);
-
 			sub16(sys, regmem, imm);
 			break;
 		}
 		case OR_RM16_IMM8:
 		{
-			int16_t imm = 0;
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 0, 0);
-
 			or16(sys, regmem, imm);
 			break;
 		}
 		case XOR_RM16_IMM8:
 		{
-			int16_t imm = 0;
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 0, 0);
-
 			xor16(sys, regmem, imm);
 			break;
 		}
@@ -263,54 +202,42 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	case GROUP_OPCODE_D0:
 	{
 		enum CPU_Group_Opcode_D0 group_opcode_instruction = (read_address8(sys, cur_inst + 1, 0) & 0b00111000) >> 3;
+		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+
 		switch (group_opcode_instruction)
 		{
 		case ROL_RM8_1:
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-
 			rol8(sys, regmem, 1);
 			break;
 		}
 		case ROR_RM8_1:
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-
 			ror8(sys, regmem, 1);
 			break;
 		}
 		case RCL_RM8_1:
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-
 			rcl8(sys, regmem, 1);
 			break;
 		}
 		case RCR_RM8_1:
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-
 			rcr8(sys, regmem, 1);
 			break;
 		}
 		case SAL_RM8_1: // D0 mm
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-
 			sal8(sys, regmem, 1);
 			break;
 		}
 		case SAR_RM8_1: // D0 mm
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-
 			sar8(sys, regmem, 1);
 			break;
 		}
 		case SHR_RM8_1: // D0 mm
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-
 			shr8(sys, regmem, 1);
 			break;
 		}
@@ -327,54 +254,42 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	case GROUP_OPCODE_D1:
 	{
 		enum CPU_Group_Opcode_D1 group_opcode_instruction = (read_address8(sys, cur_inst + 1, 0) & 0b00111000) >> 3;
+		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+
 		switch (group_opcode_instruction)
 		{
 		case ROL_RM16_1:
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
 			rol16(sys, regmem, 1);
 			break;
 		}
 		case ROR_RM16_1:
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
 			ror16(sys, regmem, 1);
 			break;
 		}
 		case RCL_RM16_1:
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
 			rcl16(sys, regmem, 1);
 			break;
 		}
 		case RCR_RM16_1:
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
 			rcr16(sys, regmem, 1);
 			break;
 		}
 		case SAL_RM16_1: // D0 mm
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
 			sal16(sys, regmem, 1);
 			break;
 		}
 		case SAR_RM16_1: // D0 mm
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
 			sar16(sys, regmem, 1);
 			break;
 		}
 		case SHR_RM16_1: // D0 mm
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
 			shr16(sys, regmem, 1);
 			break;
 		}
@@ -391,54 +306,42 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	case GROUP_OPCODE_D2:
 	{
 		enum CPU_Group_Opcode_D2 group_opcode_instruction = (read_address8(sys, cur_inst + 1, 0) & 0b00111000) >> 3;
+		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+
 		switch (group_opcode_instruction)
 		{
 		case ROL_RM8_CL:
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-
 			rol8(sys, regmem, sys->cpu.cx.low);
 			break;
 		}
 		case ROR_RM8_CL:
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-
 			ror8(sys, regmem, sys->cpu.cx.low);
 			break;
 		}
 		case RCL_RM8_CL:
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-
 			rcl8(sys, regmem, sys->cpu.cx.low);
 			break;
 		}
 		case RCR_RM8_CL:
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-
 			rcr8(sys, regmem, sys->cpu.cx.low);
 			break;
 		}
 		case SAL_RM8_CL: // D0 mm
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-
 			sal8(sys, regmem, sys->cpu.cx.low);
 			break;
 		}
 		case SAR_RM8_CL: // D0 mm
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-
 			sar8(sys, regmem, sys->cpu.cx.low);
 			break;
 		}
 		case SHR_RM8_CL: // D0 mm
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-
 			shr8(sys, regmem, sys->cpu.cx.low);
 			break;
 		}
@@ -454,54 +357,42 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	case GROUP_OPCODE_D3:
 	{
 		enum CPU_Group_Opcode_D3 group_opcode_instruction = (read_address8(sys, cur_inst + 1, 0) & 0b00111000) >> 3;
+		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+
 		switch (group_opcode_instruction)
 		{
 		case ROL_RM16_CL:
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
 			rol16(sys, regmem, sys->cpu.cx.low);
 			break;
 		}
 		case ROR_RM16_CL:
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
 			ror16(sys, regmem, sys->cpu.cx.low);
 			break;
 		}
 		case RCL_RM16_CL:
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
 			rcl16(sys, regmem, sys->cpu.cx.low);
 			break;
 		}
 		case RCR_RM16_CL:
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
 			rcr16(sys, regmem, sys->cpu.cx.low);
 			break;
 		}
 		case SAL_RM16_CL: // D0 mm
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
 			sal16(sys, regmem, sys->cpu.cx.low);
 			break;
 		}
 		case SAR_RM16_CL: // D0 mm
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
 			sar16(sys, regmem, sys->cpu.cx.low);
 			break;
 		}
 		case SHR_RM16_CL: // D0 mm
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
 			shr16(sys, regmem, sys->cpu.cx.low);
 			break;
 		}
@@ -643,17 +534,17 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	case GROUP_OPCODE_FE:
 	{
 		enum CPU_Group_Opcode_FE group_opcode_instruction = (read_address8(sys, cur_inst + 1, 0) & 0b00111000) >> 3;
+		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
+
 		switch (group_opcode_instruction)
 		{
 		case DEC_RM8: // FE mm dd dd
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
 			dec8(sys, regmem);
 			break;
 		}
 		case INC_RM8: // FE mm dd dd
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
 			inc8(sys, regmem);
 			break;
 		}
