@@ -541,7 +541,6 @@ void neg8(Sys8086* sys, uint8_t* value)
 		sys->cpu.flag.whole &= ~FLAG_CARRY;
 	} 
 
-	cpu_modify_flag_carry(&sys->cpu, old_val, (*value), 0);
 	cpu_modify_flag_half_carry(&sys->cpu, old_val, (*value));
 	cpu_modify_flag_zero(&sys->cpu, (*value));
 	cpu_modify_flag_parity(&sys->cpu, (*value));
@@ -565,7 +564,6 @@ void neg16(Sys8086* sys, uint16_t* value)
 		sys->cpu.flag.whole &= ~FLAG_CARRY;
 	} 
 
-	cpu_modify_flag_carry(&sys->cpu, old_val, (*value), 1);
 	cpu_modify_flag_half_carry(&sys->cpu, old_val, (*value));
 	cpu_modify_flag_zero(&sys->cpu, (*value));
 	cpu_modify_flag_parity(&sys->cpu, (*value));
