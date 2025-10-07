@@ -1866,15 +1866,13 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	case SBB_R8_RM8:
 	{
 		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-		(*(uint8_t*)regmem) += sys->cpu.flag.whole & FLAG_CARRY;
-		sub8(sys, reg, *(uint8_t*)regmem);
+		sub8(sys, reg, *(uint8_t*)regmem + (uint8_t)(sys->cpu.flag.whole & FLAG_CARRY));
 		break;
 	}
 	case SBB_R16_RM16:
 	{
 		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-		(*(uint16_t*)regmem) += sys->cpu.flag.whole & FLAG_CARRY;
-		sub16(sys, reg, (*(uint16_t*)regmem));
+		sub16(sys, reg, (*(uint16_t*)regmem) + sys->cpu.flag.whole & FLAG_CARRY);
 		break;
 	}
 	case SCASB:
