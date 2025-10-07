@@ -1273,7 +1273,7 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	}
 	case JG_REL8: // 7f ii // Same as JNLE_REL8
 	{
-		if ((sys->cpu.flag.whole & FLAG_ZERO) == 0 && (sys->cpu.flag.whole & FLAG_SIGN) == (sys->cpu.flag.whole & FLAG_OVERFLOW))
+		if ((sys->cpu.flag.whole & FLAG_ZERO) == 0 && (((sys->cpu.flag.whole & FLAG_SIGN) == 0 && (sys->cpu.flag.whole & FLAG_OVERFLOW) == 0) || ((sys->cpu.flag.whole & FLAG_SIGN) && (sys->cpu.flag.whole & FLAG_OVERFLOW))))
 		{
 			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
 		}
@@ -1287,7 +1287,7 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	}
 	case JGE_REL8: // 7D ii // Same as JNL_REL8
 	{
-		if ((sys->cpu.flag.whole & FLAG_SIGN) == (sys->cpu.flag.whole & FLAG_OVERFLOW))
+		if (((sys->cpu.flag.whole & FLAG_SIGN) == 0 && (sys->cpu.flag.whole & FLAG_OVERFLOW) == 0) || ((sys->cpu.flag.whole & FLAG_SIGN) && (sys->cpu.flag.whole & FLAG_OVERFLOW)))
 		{
 			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
 		}
@@ -1301,7 +1301,7 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	}
 	case JL_REL8: // 7c ii // Same as JNGE_REL8
 	{
-		if ((sys->cpu.flag.whole & FLAG_SIGN) != (sys->cpu.flag.whole & FLAG_OVERFLOW))
+		if (((sys->cpu.flag.whole & FLAG_SIGN) == 0 && sys->cpu.flag.whole & FLAG_OVERFLOW) || (sys->cpu.flag.whole & FLAG_SIGN && (sys->cpu.flag.whole & FLAG_OVERFLOW) == 0))
 		{
 			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
 		}
@@ -1315,7 +1315,7 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	}
 	case JLE_REL8: // 7E ii // Same as JNG_REL8
 	{
-		if (sys->cpu.flag.whole & FLAG_ZERO || (sys->cpu.flag.whole & FLAG_SIGN) != (sys->cpu.flag.whole & FLAG_OVERFLOW))
+		if (sys->cpu.flag.whole & FLAG_ZERO || (((sys->cpu.flag.whole & FLAG_SIGN) == 0 && sys->cpu.flag.whole & FLAG_OVERFLOW) || (sys->cpu.flag.whole & FLAG_SIGN && (sys->cpu.flag.whole & FLAG_OVERFLOW) == 0)))
 		{
 			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
 		}
