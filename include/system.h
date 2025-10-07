@@ -27,8 +27,7 @@ typedef struct Sys8086
 	Display display;
 	uint8_t memory[MAX_MEMORY_8086];
 	CPU cpu;
-	Pic pic_master;
-	Pic pic_slave;
+	Pic pic;
 	Pit pit;
 	Ppi ppi;
 	DMA dma;

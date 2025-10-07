@@ -251,6 +251,6 @@ void poll_keyboard(Sys8086* sys, SDL_Event event)
         }
 
         sys->ppi.regs[0] = keyboard_scancode;
-        sys->pic_master.irr |= 1 << PIC_IRQ_KEYBOARD;
+        sys->pic.irr |= 1 << PIC_IRQ_KEYBOARD;
     }
 }

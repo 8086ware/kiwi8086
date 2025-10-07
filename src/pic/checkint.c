@@ -10,21 +10,22 @@ void pic_check_int(Sys8086* sys)
 
 	if (sys->cpu.flag.whole & FLAG_INTERRUPT)
 	{
-		if (sys->pic_master.irr != 0)
+		if (sys->pic.irr != 0)
 		{
 			for (int i = 0; i < 8; i++)
 			{
-				if (sys->pic_master.isr & (1 << i))
+				if (sys->pic.isr & (1 << i))
 				{
 					break;
 				}
 
-				if (sys->pic_master.irr & (1 << i) && (sys->pic_master.imr & (1 << i)) == 0)
+				if (sys->pic.irr & (1 << i) && (sys->pic.imr & (1 << i)) == 0)
 				{
-					sys->pic_master.isr |= (1 << i);
-					sys->pic_master.irr &= ~(1 << i);
+					sys->pic.isr |= (1 << i);
+					sys->pic.irr &= ~(1 << i);
 
-					vector_offset = sys->pic_master.vector_offset * 4 + i * 4;
+
+					vector_offset = sys->pic.vector_offset * 4 + i * 4;
 					interrupt_go = 1;
 					break;
 				}
