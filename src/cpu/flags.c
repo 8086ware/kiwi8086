@@ -39,7 +39,7 @@ void cpu_modify_flag_parity(CPU* cpu, uint8_t val)
 
 	for (int i = 0; i < 8; i++)
 	{
-		if (((val << i) & 0b10000000) == 0b10000000)
+		if (val & (1 << i))
 		{
 			bit_amount++;
 		}
@@ -60,14 +60,14 @@ void cpu_modify_flag_parity(CPU* cpu, uint8_t val)
 
 void cpu_modify_flag_half_carry(CPU* cpu, uint8_t old_val, uint8_t new_val)
 {
-	if ((old_val & 0b00001000) == 0b00001000)
-	{
-		cpu->flag.whole &= ~FLAG_HALF_CARRY;
-	}
-
-	else if ((new_val & 0b00001000) == 0b00001000)
+	if (old_val < 0xf && new_val >= 0xf)
 	{
 		cpu->flag.whole |= FLAG_HALF_CARRY;
+	}
+
+	else
+	{
+		cpu->flag.whole &= ~FLAG_HALF_CARRY;
 	}
 }
 
