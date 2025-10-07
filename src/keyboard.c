@@ -250,7 +250,10 @@ void poll_keyboard(Sys8086* sys, SDL_Event event)
             keyboard_scancode += 80;
         }
 
-        sys->ppi.regs[0] = keyboard_scancode;
-        sys->pic.irr |= 1 << PIC_IRQ_KEYBOARD;
+        if ((sys->ppi.regs[1] & PPI_FLAG_B_KEYBOARD_DISABLE) == 0)
+        {
+            sys->ppi.regs[0] = keyboard_scancode;
+            sys->pic.irr |= 1 << PIC_IRQ_KEYBOARD;
+        }
     }
 }

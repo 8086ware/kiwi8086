@@ -10,7 +10,16 @@ uint8_t handle_ppi_port(Sys8086* sys, uint16_t port, uint8_t value, _Bool read)
 	{
 		if (read)
 		{
-			return sys->ppi.regs[0];
+			char ret = sys->ppi.regs[0];
+
+			if ((sys->ppi.regs[1] & PPI_FLAG_B_KEYBOARD_DISABLE))
+			{
+				ret = 0;
+			}
+
+			sys->ppi.regs[0] = 0;
+
+			return ret;
 		}
 
 		break;
@@ -41,6 +50,7 @@ uint8_t handle_ppi_port(Sys8086* sys, uint16_t port, uint8_t value, _Bool read)
 			if ((sys->ppi.regs[1] & PPI_FLAG_B_KEYBOARD_CLOCK) == 0) // clock line low, respond with test pass
 			{
 				sys->ppi.regs[0] = 0xAA;
+				sys->pic.irr |= 1 << PIC_IRQ_KEYBOARD;
 			}
 		}
 
