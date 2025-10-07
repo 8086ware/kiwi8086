@@ -645,6 +645,11 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 
 		sys->cpu.ax.high = temp / imm;
 		sys->cpu.ax.low = temp % imm;
+
+		cpu_modify_flag_sign(&sys->cpu, sys->cpu.ax.low, 0);
+		cpu_modify_flag_zero(&sys->cpu, sys->cpu.ax.low);
+		cpu_modify_flag_parity(&sys->cpu, sys->cpu.ax.low);
+
 		ip_increase = 2;
 		break;
 	}
