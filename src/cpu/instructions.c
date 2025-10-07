@@ -277,7 +277,7 @@ void sub16(Sys8086* sys, uint16_t* to, uint16_t subbed)
 
 void sal8(Sys8086* sys, int8_t* value, uint8_t amount)
 {
-	if(((*value << (amount - 1)) & 0b10000000))
+	if(((*value << (amount - 1)) & 0x80))
 	{
 		sys->cpu.flag.whole |= FLAG_CARRY;
 	}
@@ -309,7 +309,7 @@ void sal8(Sys8086* sys, int8_t* value, uint8_t amount)
 
 void sar8(Sys8086* sys, int8_t* value, uint8_t amount)
 {
-	if(((*value >> (amount - 1)) & 0b00000001))
+	if(((*value >> (amount - 1)) & 0x1))
 	{
 		sys->cpu.flag.whole |= FLAG_CARRY;
 	}
@@ -333,7 +333,7 @@ void sar8(Sys8086* sys, int8_t* value, uint8_t amount)
 
 void shr8(Sys8086* sys, uint8_t* value, uint8_t amount)
 {
-	if(((*value >> (amount - 1)) & 0b00000001))
+	if(((*value >> (amount - 1)) & 0x1))
 	{
 		sys->cpu.flag.whole |= FLAG_CARRY;
 	}
@@ -365,7 +365,7 @@ void shr8(Sys8086* sys, uint8_t* value, uint8_t amount)
 
 void sal16(Sys8086* sys, int16_t* value, uint8_t amount)
 {
-	if(((*value << (amount - 1)) & 0b1000000000000000))
+	if(((*value << (amount - 1)) & 0x8000))
 	{
 		sys->cpu.flag.whole |= FLAG_CARRY;
 	}
@@ -397,7 +397,7 @@ void sal16(Sys8086* sys, int16_t* value, uint8_t amount)
 
 void sar16(Sys8086* sys, int16_t* value, uint8_t amount)
 {
-	if(((*value >> (amount - 1)) & 0b0000000000000001))
+	if(((*value >> (amount - 1)) & 0x1))
 	{
 		sys->cpu.flag.whole |= FLAG_CARRY;
 	}
@@ -423,7 +423,7 @@ void shr16(Sys8086* sys, uint16_t* value, uint8_t amount)
 {
 	uint16_t old_val = *value;
 
-	if(((*value >> (amount - 1)) & 0b0000000000000001))
+	if(((*value >> (amount - 1)) & 0x1))
 	{
 		sys->cpu.flag.whole |= FLAG_CARRY;
 	}
