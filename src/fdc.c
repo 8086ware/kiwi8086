@@ -125,7 +125,7 @@ uint8_t handle_fdc_port(Sys8086* sys, uint16_t port, uint8_t value, _Bool read)
 						sys->fdc.data_read_current = 0;	
 						sys->fdc.st[0] = 0;
 						sys->fdc.st[0] |= FDC_ST0_SK_END | (sys->fdc.fdd->head << 2) | (value & 0x3);
-						sys->pic_master.irr |= 1 << PIC_IRQ_FLOPPY_CTRL;
+						sys->pic.irr |= 1 << PIC_IRQ_FLOPPY_CTRL;
 						break;
 					}
 					}
@@ -180,7 +180,7 @@ uint8_t handle_fdc_port(Sys8086* sys, uint16_t port, uint8_t value, _Bool read)
 			sys->fdc.st[0] = 0;
 			sys->fdc.st[0] |= (3 << 6) | (sys->fdc.fdd->head << 2) | (value & FDC_DOR_DRIVE);
 			sys->fdc.msr |= FDC_MSR_REQUEST_FOR_MASTER;
-			sys->pic_master.irr |= 1 << PIC_IRQ_FLOPPY_CTRL;
+			sys->pic.irr |= 1 << PIC_IRQ_FLOPPY_CTRL;
 		}
 
 		if (value & FDC_DOR_MOTOR_A_ON || value & FDC_DOR_MOTOR_B_ON || value & FDC_DOR_MOTOR_C_ON || value & FDC_DOR_MOTOR_D_ON) // one of the motors turned on
