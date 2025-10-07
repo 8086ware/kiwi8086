@@ -473,7 +473,7 @@ uint16_t* segment_reg_index(CPU* cpu, int index);
 uint16_t* reg16_index(CPU* cpu, int index);
 uint8_t* reg8_index(CPU* cpu, int index);
 
-void cpu_modify_flag_carry(CPU* cpu, uint16_t old_val, uint16_t new_val, _Bool word);
+void cpu_modify_flag_carry(CPU* cpu, int old_val, int val, _Bool added, _Bool word);
 void cpu_modify_flag_parity(CPU* cpu, uint8_t val);
 void cpu_modify_flag_half_carry(CPU* cpu, uint8_t old_val, uint8_t new_val);
 void cpu_modify_flag_zero(CPU* cpu, uint16_t val);

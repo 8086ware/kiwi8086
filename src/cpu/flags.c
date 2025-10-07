@@ -1,46 +1,34 @@
 #include "system.h"
+#include <limits.h>
 
-void cpu_modify_flag_carry(CPU* cpu, uint16_t old_val, uint16_t new_val, _Bool word)
+void cpu_modify_flag_carry(CPU* cpu, int old_val, int val, _Bool added, _Bool word)
 {
-	uint8_t old_val8 = old_val;
-	uint8_t new_val8 = new_val;
-
 	if (word)
 	{
-		for (int i = 0; i < 16; i++)
+		if ((old_val + val > USHRT_MAX && added) || (old_val - val < 0 && !added))
 		{
-			if (((old_val << i) & 0b1000000000000000) == 0b1000000000000000)
-			{
-				cpu->flag.whole &= ~FLAG_CARRY;
-				break;
+			cpu->flag.whole |= FLAG_CARRY;
 			}
 
-			if (((new_val << i) & 0b1000000000000000) == 0b1000000000000000)
+		else
 			{
-				cpu->flag.whole |= FLAG_CARRY;
-				break;
+			cpu->flag.whole &= ~FLAG_CARRY;
 			}
 		}
-	}
 
 	else
 	{
-		for (int i = 0; i < 8; i++)
+		if ((old_val + val > UCHAR_MAX && added) || (old_val - val < 0 && !added))
 		{
-			if (((old_val8 << i) & 0b10000000) == 0b10000000)
-			{
-				cpu->flag.whole &= ~FLAG_CARRY;
-				break;
+			cpu->flag.whole |= FLAG_CARRY;
 			}
 
-			if (((new_val8 << i) & 0b10000000) == 0b10000000)
+		else
 			{
-				cpu->flag.whole |= FLAG_CARRY;
-				break;
+			cpu->flag.whole &= ~FLAG_CARRY;
 			}
 		}
 	}
-}
 
 // Sees if amount of bits set is even (on) or odd (off)
 // only least significant byte so its fine passing 16 bit value

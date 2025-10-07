@@ -156,7 +156,7 @@ void cmp16(Sys8086* sys, uint16_t val1, uint16_t val2)
 {
 	uint16_t temp = val1 - val2;
 
-	cpu_modify_flag_carry(&sys->cpu, val1, temp, 1);
+	cpu_modify_flag_carry(&sys->cpu, val1, val2, 0, 1);
 	cpu_modify_flag_half_carry(&sys->cpu, val1, temp);
 	cpu_modify_flag_zero(&sys->cpu, temp);
 	cpu_modify_flag_parity(&sys->cpu, temp);
@@ -168,7 +168,7 @@ void cmp8(Sys8086* sys, uint8_t val1, uint8_t val2)
 {
 	uint8_t temp = val1 - val2;
 
-	cpu_modify_flag_carry(&sys->cpu, val1, temp, 0);
+	cpu_modify_flag_carry(&sys->cpu, val1, val2, 0, 0);
 	cpu_modify_flag_half_carry(&sys->cpu, val1, temp);
 	cpu_modify_flag_zero(&sys->cpu, temp);
 	cpu_modify_flag_parity(&sys->cpu, temp);
@@ -225,7 +225,7 @@ void add8(Sys8086* sys, uint8_t* to, uint8_t added)
 
 	(*to) += added;
 
-	cpu_modify_flag_carry(&sys->cpu, old_val, *to, 0);
+	cpu_modify_flag_carry(&sys->cpu, old_val, added, 1, 0);
 	cpu_modify_flag_half_carry(&sys->cpu, old_val, *to);
 	cpu_modify_flag_zero(&sys->cpu, *to);
 	cpu_modify_flag_parity(&sys->cpu, *to);
@@ -239,7 +239,7 @@ void add16(Sys8086* sys, uint16_t* to, uint16_t added)
 
 	(*to) += added;
 
-	cpu_modify_flag_carry(&sys->cpu, old_val, *to, 1);
+	cpu_modify_flag_carry(&sys->cpu, old_val, added, 1, 1);
 	cpu_modify_flag_half_carry(&sys->cpu, old_val, *to);
 	cpu_modify_flag_zero(&sys->cpu, *to);
 	cpu_modify_flag_parity(&sys->cpu, *to);
@@ -253,7 +253,7 @@ void sub8(Sys8086* sys, uint8_t* to, uint8_t subbed)
 
 	(*to) -= subbed;
 
-	cpu_modify_flag_carry(&sys->cpu, old_val, *to, 0);
+	cpu_modify_flag_carry(&sys->cpu, old_val, subbed, 0, 0);
 	cpu_modify_flag_half_carry(&sys->cpu, old_val, *to);
 	cpu_modify_flag_zero(&sys->cpu, *to);
 	cpu_modify_flag_parity(&sys->cpu, *to);
@@ -267,7 +267,7 @@ void sub16(Sys8086* sys, uint16_t* to, uint16_t subbed)
 
 	(*to) -= subbed;
 
-	cpu_modify_flag_carry(&sys->cpu, old_val, *to, 1);
+	cpu_modify_flag_carry(&sys->cpu, old_val, subbed, 0, 1);
 	cpu_modify_flag_half_carry(&sys->cpu, old_val, *to);
 	cpu_modify_flag_zero(&sys->cpu, *to);
 	cpu_modify_flag_parity(&sys->cpu, *to);
