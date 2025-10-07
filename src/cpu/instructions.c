@@ -230,7 +230,7 @@ void add8(Sys8086* sys, uint8_t* to, uint8_t added)
 	cpu_modify_flag_zero(&sys->cpu, *to);
 	cpu_modify_flag_parity(&sys->cpu, *to);
 	cpu_modify_flag_sign(&sys->cpu, *to, 0);
-	cpu_modify_flag_overflow(&sys->cpu, old_val, added, *to, 0);
+	cpu_modify_flag_overflow(&sys->cpu, old_val, -added, *to, 0);
 }
 
 void add16(Sys8086* sys, uint16_t* to, uint16_t added)
