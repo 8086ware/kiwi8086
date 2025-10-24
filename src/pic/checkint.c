@@ -24,7 +24,6 @@ void pic_check_int(Sys8086* sys)
 					sys->pic.isr |= (1 << i);
 					sys->pic.irr &= ~(1 << i);
 
-
 					vector_offset = sys->pic.vector_offset * 4 + i * 4;
 					interrupt_go = 1;
 					break;
