@@ -74,18 +74,6 @@ uint8_t calc_modrm_byte(Sys8086* sys, Register* data_seg, int instruction_addres
 			}
 		}
 
-		// Add displacement to regmem first before adding (if displacement provided)
-
-		if (mod_val == 0b01)
-		{
-			*(uint8_t*)regmem += read_address8(sys, instruction_address + displacement_position, 0);
-		}
-
-		else if (mod_val == 0b10)
-		{
-			*(uint16_t*)regmem += read_address16(sys, instruction_address + displacement_position, 0);
-		}
-
 		// Add registers to rmmem
 
 		switch (rm_val)
@@ -134,7 +122,7 @@ uint8_t calc_modrm_byte(Sys8086* sys, Register* data_seg, int instruction_addres
 		{
 			if (mod_val == 0)
 			{
-				*(uint16_t*)regmem += read_address16(sys, instruction_address + displacement_position, 0);
+				*(uint16_t*)regmem += (int16_t)read_address16(sys, instruction_address + displacement_position, 0);
 			}
 
 			else
@@ -156,8 +144,19 @@ uint8_t calc_modrm_byte(Sys8086* sys, Register* data_seg, int instruction_addres
 		}
 		}
 
-		void* real_regmem_memory_address = sys->memory + seg_mem(data_seg->whole, *(uint16_t*)regmem);
-		*regmem = real_regmem_memory_address;
+		// Add displacement to regmem first before adding (if displacement provided)
+
+		if (mod_val == 0b01)
+		{
+			*(int8_t*)regmem += (int8_t)read_address8(sys, instruction_address + displacement_position, 0);
+		}
+
+		else if (mod_val == 0b10)
+		{
+			*(int16_t*)regmem += (int16_t)read_address16(sys, instruction_address + displacement_position, 0);
+		}
+
+		*regmem = &sys->memory[seg_mem(data_seg->whole, *(uint16_t*)regmem)];
 	}
 
 	// rm is same as reg, using rmreg
