@@ -13,6 +13,16 @@ void poll_keyboard(Sys8086* sys, SDL_Event event)
     
         switch(event.key.scancode)
         {
+        case SDL_SCANCODE_ESCAPE:
+        {
+            keyboard_scancode = 0x1;
+            break;
+        }
+        case SDL_SCANCODE_RETURN:
+        {
+            keyboard_scancode = 0x1C;
+            break;
+        }
         case SDL_SCANCODE_A:
         {
             keyboard_scancode = 0x1E;
@@ -238,16 +248,86 @@ void poll_keyboard(Sys8086* sys, SDL_Event event)
             keyboard_scancode = 0x2A;
             break;
         }
-        case SDL_SCANCODE_LGUI:
+        case SDL_SCANCODE_LCTRL:
         {
-            keyboard_scancode = 0xE0;
+            keyboard_scancode = 0x1D;
+            break;
+        }
+        case SDL_SCANCODE_LALT:
+        {
+            keyboard_scancode = 0x38;
+            break;
+        }
+        case SDL_SCANCODE_DELETE:
+        {
+            keyboard_scancode = 0x1D;
+            break;
+        }
+        case SDL_SCANCODE_F1:
+        {
+            keyboard_scancode = 0x3b;
+            break;
+        }
+        case SDL_SCANCODE_F2:
+        {
+            keyboard_scancode = 0x3c;
+            break;
+        }
+        case SDL_SCANCODE_F3:
+        {
+            keyboard_scancode = 0x3d;
+            break;
+        }
+        case SDL_SCANCODE_F4:
+        {
+            keyboard_scancode = 0x3e;
+            break;
+        }
+        case SDL_SCANCODE_F5:
+        {
+            keyboard_scancode = 0x3f;
+            break;
+        }
+        case SDL_SCANCODE_F6:
+        {
+            keyboard_scancode = 0x40;
+            break;
+        }
+        case SDL_SCANCODE_F7:
+        {
+            keyboard_scancode = 0x41;
+            break;
+        }
+        case SDL_SCANCODE_F8:
+        {
+            keyboard_scancode = 0x42;
+            break;
+        }
+        case SDL_SCANCODE_F9:
+        {
+            keyboard_scancode = 0x43;
+            break;
+        }
+        case SDL_SCANCODE_F10:
+        {
+            keyboard_scancode = 0x44;
+            break;
+        }
+        case SDL_SCANCODE_F11:
+        {
+            keyboard_scancode = 0x57;
+            break;
+        }
+        case SDL_SCANCODE_F12:
+        {
+            keyboard_scancode = 0x58;
             break;
         }
         }
         
         if(event.type == SDL_EVENT_KEY_UP)
         {
-            keyboard_scancode += 80;
+            keyboard_scancode += 0x80;
         }
 
         if ((sys->ppi.regs[1] & PPI_FLAG_B_KEYBOARD_DISABLE) == 0)
