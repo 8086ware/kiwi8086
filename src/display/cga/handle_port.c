@@ -11,7 +11,7 @@ uint8_t handle_cga_port(Sys8086* sys, uint16_t port, uint8_t value, _Bool read)
 	{
 		if(read)
 		{
-			return 0b0001001; // nevre in vertical retrace (technically) and no CGA snow
+			return 0x9; // nevre in vertical retrace (technically) and no CGA snow
 		}
 
 		break;
