@@ -453,7 +453,7 @@ void shr16(Sys8086* sys, uint16_t* value, uint8_t amount)
 	cpu_modify_flag_sign(&sys->cpu, (*value), 1);
 }
 
-void or8(Sys8086* sys, uint8_t* value, int8_t or)
+void or8(Sys8086* sys, uint8_t* value, uint8_t or)
 {
 	(*value) |= or;
 
@@ -465,7 +465,7 @@ void or8(Sys8086* sys, uint8_t* value, int8_t or)
 	cpu_modify_flag_sign(&sys->cpu, *value, 0);
 }
 
-void or16(Sys8086* sys, uint16_t* value, int16_t or)
+void or16(Sys8086* sys, uint16_t* value, uint16_t or)
 {
 	(*value) |= or;
 

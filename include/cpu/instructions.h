@@ -34,8 +34,8 @@ void sal16(Sys8086* sys, int16_t* value, uint8_t amount);
 void sar16(Sys8086* sys, int16_t* value, uint8_t amount);
 void shr16(Sys8086* sys, uint16_t* value, uint8_t amount);
 
-void or8(Sys8086* sys, uint8_t* value, int8_t or);
-void or16(Sys8086* sys, uint16_t* value, int16_t or);
+void or8(Sys8086* sys, uint8_t* value, uint8_t or);
+void or16(Sys8086* sys, uint16_t* value, uint16_t or);
 
 void and8(Sys8086* sys, uint8_t* value, uint8_t and);
 void and16(Sys8086* sys, uint16_t* value, uint16_t and);
