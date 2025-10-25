@@ -1368,7 +1368,7 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	{
 		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
 
-		*(uint16_t*)reg = ((uint8_t*)regmem - (uint8_t*)sys->memory);
+		*(uint16_t*)reg = (((uint8_t*)regmem - (data_seg->whole * 0x10)) - (uint8_t*)sys->memory);
 
 		break;
 	}
