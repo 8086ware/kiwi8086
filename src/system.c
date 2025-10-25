@@ -5,6 +5,11 @@
 
 Sys8086* init_sys(FILE* image, FILE* bios_rom)
 {
+	if(bios_rom == NULL || image == NULL)
+	{
+		return NULL;
+	}
+
 	Sys8086* sys = malloc(sizeof(Sys8086));
 
 	if (sys == NULL)
@@ -14,23 +19,15 @@ Sys8086* init_sys(FILE* image, FILE* bios_rom)
 
 	memset(sys, 0, sizeof(Sys8086));
 
-	if(bios_rom == NULL)
-	{
-		// Starting point of first bootsector
-		sys->cpu.cs.whole = 0x0;
-		sys->cpu.ip.whole = 0x7c00;
-	}
+	fseek(bios_rom, 0, SEEK_END);
+	int bios_size = ftell(bios_rom);
+	fseek(bios_rom, 0, SEEK_SET);
 
-	else
-	{
+	fread(&sys->memory[MAX_MEMORY_8086 - bios_size], sizeof(uint8_t), bios_size, bios_rom);
+
 		cpu_reset(&sys->cpu);
-	}
 
 	// init display and palettes
-	// init cga
-	
-	sys->display.cga.color_ctrl_reg = 0;
-	sys->display.cga.mode_ctrl_reg = 0;
 
 	sys->display.surface = NULL;
 
@@ -72,50 +69,7 @@ Sys8086* init_sys(FILE* image, FILE* bios_rom)
 
 	memset(sys->display.cga.ram, 0, CGA_RAM_SIZE);
 
-	// init crtc
-
-	sys->display.crtc.start_address = 0;
-	sys->display.crtc.cursor_address = 0;
-	
-	sys->display.crtc.cursor_start_scan_line = 6;
-	sys->display.crtc.cursor_end_scan_line = 8;
-
-	// init memory
-
-	memset(sys->memory, 0, MAX_MEMORY_8086);
-
-	// init pic
-	sys->pic_master.vector_offset = 0x8;
-	sys->pic_slave.vector_offset = 0x70;
-
-	sys->pic_master.irr = 0;
-	sys->pic_slave.irr = 0;
-
-	sys->pic_master.imr = 0;
-	sys->pic_slave.imr = 0;
-
-	sys->pic_master.isr = 0;
-	sys->pic_slave.isr = 0;
-
 	sys->cpu.halted = 0;
-
-	sys->cpu.flag.whole = 0;
-
-	// init pit
-	
-	sys->pit.timers[0].reload_value = 0;
-	sys->pit.timers[0].current_count = sys->pit.timers[0].reload_value;
-
-	// load bios if exist
-
-	if(bios_rom != NULL)
-	{
-		fseek(bios_rom, 0, SEEK_END);
-		int bios_size = ftell(bios_rom);
-		fseek(bios_rom, 0, SEEK_SET);
-
-		fread(&sys->memory[MAX_MEMORY_8086 - bios_size], sizeof(uint8_t), bios_size, bios_rom);
-	}
 
 	sys->fdc.fdd[0].floppy1 = image;
 
