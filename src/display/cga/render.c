@@ -10,19 +10,19 @@ void display_render(Sys8086* sys)
 {
     uint64_t now_tick = SDL_GetTicksNS();
 
-    SDL_ClearSurface(sys->display.surface, 0, 0, 0, 0);
-    
-    SDL_Texture* screen_texture = NULL;
-
-    int width = 0;
-    int height = 0;
-    int columns = 0;
-    int rows = 0;
-
-    int bpp = 0;
-
     if (now_tick - sys->display.last_tick >= 16666600)
     {
+        SDL_ClearSurface(sys->display.surface, 0, 0, 0, 0);
+
+        SDL_Texture* screen_texture = NULL;
+
+        int width = 0;
+        int height = 0;
+        int columns = 0;
+        int rows = 0;
+
+        int bpp = 0;
+
         if (sys->display.cga.mode_ctrl_reg & CGA_MODE_CONTROL_VIDEO) // Is this thing on?
         {
             if (sys->display.cga.mode_ctrl_reg & CGA_MODE_CONTROL_GRAPHICS)
