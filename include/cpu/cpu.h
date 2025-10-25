@@ -135,6 +135,7 @@ enum CPU_Group_Opcode_FF
 	CALL_RM16 = 0x2, // Opcode group FF
 	CALL_M16_16 = 0x3, // Opcode group FF
 	JMP_RM16 = 0x4, // Opcode group FF
+	JMP_M16_16 = 0x5,
 	PUSH_RM16 = 0x6, // Opcode group FF
 };
 

@@ -598,6 +598,17 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 			jmp(sys, sys->cpu.cs.whole, *(uint16_t*)regmem);
 			break;
 		}
+		case JMP_M16_16:
+		{
+			calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
+
+			uint16_t segment = read_address16(sys, *(uint16_t*)regmem + 2, 0);
+			uint16_t offset = read_address16(sys, *(uint16_t*)regmem, 0);
+
+			jmp(sys, segment, offset);
+
+			break;
+		}
 		// 0x6
 		case PUSH_RM16: // FF mm dd dd
 		{
