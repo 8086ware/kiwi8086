@@ -1,5 +1,6 @@
 #include "dma.h"
 #include "system.h"
+#include "memory.h"
 
 uint8_t handle_dma_port(Sys8086* sys, uint16_t port, uint8_t value, _Bool read)
 {
@@ -17,6 +18,19 @@ uint8_t handle_dma_port(Sys8086* sys, uint16_t port, uint8_t value, _Bool read)
 		{
 
 		}
+		break;
+	}
+	case DMA_CHANNEL_1_HIGH_ORDER_4_BITS:
+	case DMA_CHANNEL_2_HIGH_ORDER_4_BITS:
+	case DMA_CHANNEL_3_HIGH_ORDER_4_BITS:
+	{
+		if (!read)
+		{
+			uint8_t reg = (port - 0x80);
+
+			sys->dma.channels[reg].base_address |= ((uint32_t)value << 16);
+		}
+
 		break;
 	}
 	case DMA_CHANNEL_0_ADDRESS_PORT:
@@ -147,6 +161,15 @@ uint8_t handle_dma_port(Sys8086* sys, uint16_t port, uint8_t value, _Bool read)
 		}
 		break;
 	}
+	case DMA_MODE_PORT:
+	{
+		if (!read)
+		{
+			int channel = value & DMA_MODE_FLAG_SELECT_CHANNEL;
+			sys->dma.channels[channel].mode = value;
+		}
+		break;
+	}
 	case DMA_MASTER_CLEAR_TEMP_PORT:
 	{
 		if(!read)
@@ -173,7 +196,14 @@ uint8_t handle_dma_port(Sys8086* sys, uint16_t port, uint8_t value, _Bool read)
 		}
 		break;
 	}
+	case DMA_MULTIPLE_MASK_PORT:
+	{
+		if (!read)
+		{
+			sys->dma.dmask = value & 0xf;
+		}
 	}
+}
 }
 
 void dma_cycle(Sys8086* sys)

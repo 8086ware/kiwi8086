@@ -70,10 +70,12 @@ enum DMA_Port
 
 typedef struct DMA_Channel
 {
-	uint16_t current_address; // Is incremented each transfer
+	uint32_t current_address; // Is incremented each transfer
 	uint16_t current_word; // Is decremented each transfer
-	uint16_t base_address; // Original current_address
+	uint32_t base_address; // Original current_address
 	uint16_t base_word; // Original current_word
+
+	uint8_t mode;
 } DMA_Channel;
 
 typedef struct DMA

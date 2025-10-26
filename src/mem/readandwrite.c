@@ -167,7 +167,6 @@ uint8_t read_address8(Sys8086* sys, uint32_t address, _Bool port)
 			return handle_ppi_port(sys, address, 0, 1);
 			break;
 		}
-		case DMA_STATUS_COMMAND_PORT:
 		case DMA_CHANNEL_0_ADDRESS_PORT:
 		case DMA_CHANNEL_0_WORD_COUNT_PORT:
 		case DMA_CHANNEL_1_ADDRESS_PORT:
@@ -176,6 +175,17 @@ uint8_t read_address8(Sys8086* sys, uint32_t address, _Bool port)
 		case DMA_CHANNEL_2_WORD_COUNT_PORT:
 		case DMA_CHANNEL_3_ADDRESS_PORT:
 		case DMA_CHANNEL_3_WORD_COUNT_PORT:
+		case DMA_STATUS_COMMAND_PORT:
+		case DMA_REQUEST_PORT:
+		case DMA_MASK_PORT:
+		case DMA_MODE_PORT:
+		case DMA_CLEAR_FLIP_FLOP_PORT:
+		case DMA_MASTER_CLEAR_TEMP_PORT:
+		case DMA_CLEAR_MASK_PORT:
+		case DMA_MULTIPLE_MASK_PORT:
+		case DMA_CHANNEL_1_HIGH_ORDER_4_BITS:
+		case DMA_CHANNEL_2_HIGH_ORDER_4_BITS:
+		case DMA_CHANNEL_3_HIGH_ORDER_4_BITS:
 		{
 			return handle_dma_port(sys, address, 0, 1);
 			break;
