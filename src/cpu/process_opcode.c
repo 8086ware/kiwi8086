@@ -4,12 +4,6 @@
 
 int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg, int cur_inst)
 {
-	if (sys->cpu.sti_enable)
-	{
-		sys->cpu.flag.whole |= FLAG_INTERRUPT;
-		sys->cpu.sti_enable = 0;
-	}
-
 	int ip_increase = 0;
 
 	// Only used if instruction has mod r/m byte
