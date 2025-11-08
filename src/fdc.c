@@ -44,113 +44,164 @@ uint8_t handle_fdc_port(Sys8086* sys, uint16_t port, uint8_t value, _Bool read)
 
 	case FDC_PORT_DATA_IO:
 	{
-		if (read) // We are reading a byte out of the data stack. This is after a command has executed usually.
+		if (read) // We are reading a byte out of the data stack. This is after a command has executed usually. (result phase)
 		{
-			int ret = sys->fdc.data_read[sys->fdc.data_read_current];
+			uint8_t data = sys->fdc.data[sys->fdc.data_current];
 
-			sys->fdc.data_read_current++;
+			sys->fdc.data_current++;
 
-			if (sys->fdc.data_read_current >= sys->fdc.data_read_bytes)
+			if (sys->fdc.data_current == sys->fdc.data_bytes)
 			{
 				sys->fdc.msr &= ~FDC_MSR_DATA_IO;
-
-				sys->fdc.data_read_bytes = 0;
-				sys->fdc.data_read_current = 0;
-				return 0;
+				sys->fdc.msr &= ~FDC_MSR_BUSY;
+				sys->fdc.data_current = 0;
+				sys->fdc.data_bytes = 0;
+				sys->fdc.result_phase = 0;
+				return data;
 			}
 
 			else
 			{
+				sys->fdc.msr |= FDC_MSR_BUSY;
 				sys->fdc.msr |= FDC_MSR_DATA_IO; // Make sure we still in read mode
+				return data;
 			}
-
-			return ret;
 		}
 
-		else
+		else // Writing to the data stack.
 		{
-			if (sys->fdc.active_command != 0) // We are writing parameters to a fdc command
-			{
-				switch (sys->fdc.active_command)
-				{
-				case FDC_DATA_COMMAND_SPECIFY:
-				{
-					switch (sys->fdc.command_step)
-					{
-					case 0: // SRT (Upper 4 bits) HUT (lower 4 bits) (dont care)
-					{
-						sys->fdc.command_step++;
-						break;
-					}
-					case 1: // HLT (Upper 7 bits) ND (first bit) (again we dont care)
-					{
-						// finished (no result phase)
-						sys->fdc.command_step = 0; 
-						sys->fdc.active_command = 0;
-						sys->fdc.data_read[0] = 0;
-						sys->fdc.data_read_bytes = 0;
-						sys->fdc.data_read_current = 0;
-						break;
-					}
-					}
-					break;
-				}
-				case FDC_DATA_COMMAND_RECALIBRATE:
-				{
-					switch (sys->fdc.command_step)
-					{
-					case 0: 
-					{
-						// DS0, DS1 (drive select 0-3 to recalibrate in argument 1)
-						sys->fdc.fdd[value & 0x3].cylinder = 0;
-						// finished (no result phase)
-						sys->fdc.command_step = 0;
-						sys->fdc.active_command = 0;
-						sys->fdc.data_read[0] = 0;
-						sys->fdc.data_read_bytes = 0;
-						sys->fdc.data_read_current = 0;	
-						sys->fdc.st[0] = 0;
-						sys->fdc.st[0] |= FDC_ST0_SK_END | (sys->fdc.fdd->head << 2) | (value & 0x3);
-						sys->pic.irr |= 1 << PIC_IRQ_FLOPPY_CTRL;
-						break;
-					}
-					}
-					break;
-				}
-				}
-			}
+			sys->fdc.data[sys->fdc.data_current] = value;
 
-			else // issueing a command to the fdc
+			if (sys->fdc.data_current == 0)
 			{
-				uint8_t command = value & 0x1F;
+				sys->fdc.msr |= FDC_MSR_BUSY;
+
+				uint8_t command = sys->fdc.data[sys->fdc.data_current] & 0x1F; // need f and 0
 
 				if (command == FDC_DATA_COMMAND_SENSE_INTERRUPT)
 				{
-					sys->fdc.data_read_bytes = 2;
-					sys->fdc.data_read[0] = sys->fdc.st[0]; // Send st0 with sense interrupt
-					sys->fdc.data_read[1] = sys->fdc.selected_fdd->cylinder; // PCN, cylinder number at last interrupt
-					sys->fdc.data_read_current = 0;
-					sys->fdc.msr |= FDC_MSR_DATA_IO;
+					sys->fdc.data_bytes = 1;
 				}
 
 				else if (command == FDC_DATA_COMMAND_SPECIFY)
 				{
-					sys->fdc.command_step = 0;
-					sys->fdc.active_command = FDC_DATA_COMMAND_SPECIFY;
-					sys->fdc.msr &= ~FDC_MSR_DATA_IO;
+					sys->fdc.data_bytes = 3;
 				}
 
 				else if (command == FDC_DATA_COMMAND_RECALIBRATE)
 				{
-					sys->fdc.command_step = 0;
-					sys->fdc.active_command = FDC_DATA_COMMAND_RECALIBRATE;
-					sys->fdc.msr &= ~FDC_MSR_DATA_IO;
+					sys->fdc.data_bytes = 2;
+				}
+
+				else if (command == FDC_DATA_COMMAND_SEEK)
+				{
+					sys->fdc.data_bytes = 3;
+				}
+
+				else if (command == FDC_DATA_COMMAND_READ)
+				{
+					sys->fdc.data_bytes = 9;
 				}
 
 				else
 				{
-					printf("command %x\n", command);
+					printf("[FDC] unknown command %x\n", command);
 				}
+
+				sys->fdc.msr &= ~FDC_MSR_DATA_IO;
+			}
+
+			if (sys->fdc.data_bytes - 1 == sys->fdc.data_current) // execution phase
+			{
+				sys->fdc.data_current = 0;
+				// setting data bytes here is the amount read from the data stack
+				switch (sys->fdc.data[0] & 0x1F)
+				{
+				case FDC_DATA_COMMAND_SENSE_INTERRUPT:
+				{
+					sys->fdc.data[0] = sys->fdc.st[0]; // Send st0 with sense interrupt
+					sys->fdc.data[1] = sys->fdc.selected_fdd->cylinder; // PCN, cylinder number at last interrupt
+					sys->fdc.data_bytes = 2;
+					sys->fdc.result_phase = 1;
+					break;
+				}
+				case FDC_DATA_COMMAND_RECALIBRATE:
+				{
+					sys->fdc.fdd[sys->fdc.data[1] & 0x3].cylinder = 0;
+					// finished (no result phase)
+					sys->fdc.data_bytes = 0;
+					sys->fdc.st[0] = FDC_ST0_SK_END | (sys->fdc.fdd->head << 2) | (sys->fdc.data[1] & 0x3); // for sense interrupt
+					sys->pic.irr |= 1 << PIC_IRQ_FLOPPY_CTRL;
+					break;
+				}
+				case FDC_DATA_COMMAND_SEEK:
+				{
+					sys->fdc.data_bytes = 0;
+					sys->fdc.fdd[sys->fdc.data[1] & 0x3].head = sys->fdc.data[1] & 0x4;
+					sys->fdc.fdd[sys->fdc.data[1] & 0x3].cylinder = sys->fdc.data[3];
+					sys->fdc.st[0] = FDC_ST0_SK_END | (sys->fdc.fdd->head << 2) | (sys->fdc.data[1] & 0x3); // for sense interrupt
+					sys->pic.irr |= 1 << PIC_IRQ_FLOPPY_CTRL;
+					break;
+				}
+				case FDC_DATA_COMMAND_READ:
+				{
+					uint8_t drive_select = sys->fdc.data[1] & 0x3;
+					uint8_t cylinder_number = sys->fdc.data[2];
+					uint8_t head_number = sys->fdc.data[3];
+					uint8_t sector_number = sys->fdc.data[4];
+					uint8_t bytes_per_sector = sys->fdc.data[5];
+					uint8_t end_of_track = sys->fdc.data[6];
+					uint8_t data_length = sys->fdc.data[8];
+
+					int lba = ((cylinder_number * 2) + head_number) * end_of_track + (sector_number - 1);
+
+					int bytes_read = 0;
+
+					if (bytes_per_sector == 2)
+					{
+						bytes_read = 512;
+					}
+
+					else
+					{
+						bytes_read = data_length;
+					}
+
+					fseek(sys->fdc.fdd[drive_select].floppy1, lba * bytes_read, SEEK_SET);
+					fread(&sys->memory[sys->dma.channels[2].base_address], 1, bytes_read, sys->fdc.fdd[drive_select].floppy1);
+					sys->fdc.data_bytes = 7;
+					
+					sys->fdc.st[0] = (head_number << 2) | drive_select;
+					sys->fdc.st[1] = 0;
+					sys->fdc.st[2] = 0;
+
+					sys->fdc.data[0] = sys->fdc.st[0];
+					sys->fdc.data[1] = sys->fdc.st[1];
+					sys->fdc.data[2] = sys->fdc.st[2];
+
+					sys->fdc.data[3] = cylinder_number;
+					sys->fdc.data[4] = head_number;
+					sys->fdc.data[5] = sector_number;
+					sys->fdc.data[6] = bytes_per_sector;
+
+					sys->pic.irr |= 1 << PIC_IRQ_FLOPPY_CTRL;
+					sys->fdc.result_phase = 1;
+
+					break;
+				}
+				}
+
+				// result phase
+				if (sys->fdc.result_phase)
+				{
+					sys->fdc.msr |= FDC_MSR_BUSY;
+					sys->fdc.msr |= FDC_MSR_DATA_IO;
+				}
+			}
+
+			else
+			{
+				sys->fdc.data_current++;
 			}
 		}
 		break;
@@ -163,17 +214,16 @@ uint8_t handle_fdc_port(Sys8086* sys, uint16_t port, uint8_t value, _Bool read)
 		if ((value & FDC_DOR_RESET_OFF) == 0) // reset
 		{
 			sys->fdc.msr &= ~FDC_MSR_DATA_IO;
-			sys->fdc.st[0] = 0;
-			sys->fdc.st[0] |= (3 << 6) | (sys->fdc.fdd->head << 2) | (value & FDC_DOR_DRIVE);
-			sys->fdc.msr |= FDC_MSR_REQUEST_FOR_MASTER;
+			sys->fdc.st[0] = (3 << 6) | (sys->fdc.fdd->head << 2) | (value & FDC_DOR_DRIVE);
 			sys->pic.irr |= 1 << PIC_IRQ_FLOPPY_CTRL;
+			sys->fdc.msr |= FDC_MSR_REQUEST_FOR_MASTER;
 		}
 
 		if (value & FDC_DOR_MOTOR_A_ON || value & FDC_DOR_MOTOR_B_ON || value & FDC_DOR_MOTOR_C_ON || value & FDC_DOR_MOTOR_D_ON) // one of the motors turned on
 		{
-			sys->fdc.st[0] = 0;
-			sys->fdc.st[0] |= (3 << 6) | (sys->fdc.fdd->head << 2) | (value & FDC_DOR_DRIVE);
+			sys->fdc.st[0] = (3 << 6) | (sys->fdc.fdd->head << 2) | (value & FDC_DOR_DRIVE);
 			sys->fdc.msr &= ~FDC_MSR_DATA_IO;
+			sys->pic.irr |= 1 << PIC_IRQ_FLOPPY_CTRL;
 			sys->fdc.msr |= FDC_MSR_REQUEST_FOR_MASTER;
 		}
 
