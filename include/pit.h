@@ -32,6 +32,9 @@ enum Pit_Access_Mode
 
 typedef struct Pit_timer
 {
+	_Bool latch_on;
+	uint16_t latch;
+
 	_Bool received_reload_low;
 	_Bool sent_current_low;
 
@@ -40,6 +43,10 @@ typedef struct Pit_timer
 
 	enum Pit_Operating_Mode operating_mode;
 	enum Pit_Access_Mode access_mode;
+
+	_Bool output;
+
+	_Bool flip_flop;
 } Pit_timer;
 
 typedef struct Pit
