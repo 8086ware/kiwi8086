@@ -95,7 +95,7 @@ void write_address8(Sys8086* sys, uint32_t address, uint8_t value, _Bool port)
 		{
 			printf("Unkown port? %x\n", address);
 		}
-		}
+	}
 	}
 
 	else // normal address space
@@ -217,7 +217,7 @@ uint8_t read_address8(Sys8086* sys, uint32_t address, _Bool port)
 		}
 	}
 
-	return 0;
+	return 0xff;
 }
 
 uint16_t read_address16(Sys8086* sys, uint32_t address, _Bool port)
