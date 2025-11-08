@@ -30,20 +30,6 @@ During Execution Phase in the NON-DMA mode
 // value is something to be written, using read 
 uint8_t handle_fdc_port(Sys8086* sys, uint16_t port, uint8_t value, _Bool read)
 {
-	printf("[FDC] ");
-#ifndef NDEBUG
-	if (read)
-	{
-		printf("Read ");
-	}
-
-	else
-	{
-		printf("Write ");
-	}
-
-	printf("0x%x to port 0x%x\n", value, port);
-#endif
 	switch (port)
 	{
 	case FDC_PORT_MSR:
