@@ -8,20 +8,28 @@
 
 // 00 000 000
 // mod reg rm
-
-uint8_t calc_modrm_byte(Sys8086* sys, Register* data_seg, int instruction_address, void** reg, void** regmem, void* imm, _Bool word, _Bool imm_word, _Bool sreg)
+// fill in instruction before calcing
+void calc_modrm_byte(Sys8086* sys, Instruction* instruction, int modrm_address, _Bool sreg)
 {
+	instruction->modrm = 1;
+
 	_Bool default_seg = 1;
 
 	// Im not rewriting on calc_modrm_byte instances, so in cpu_exec we create a temporary variable with the value of DS
 	// (default segment) and if it actually POINTS to DS or any other segment, then use that
 
-	if (data_seg == &sys->cpu.es || data_seg == &sys->cpu.cs || data_seg == &sys->cpu.ss || data_seg == &sys->cpu.ds)
+	if (instruction->data_seg == &sys->cpu.es || instruction->data_seg == &sys->cpu.cs || instruction->data_seg == &sys->cpu.ss || instruction->data_seg == &sys->cpu.ds)
 	{
 		default_seg = 0;
 	}
 
-	uint8_t modrm = read_address8(sys, instruction_address + 1, 0);
+	else
+	{
+		default_seg = 1;
+		instruction->data_seg = &sys->cpu.ds;
+	}
+
+	uint8_t modrm = read_address8(sys, modrm_address, 0);
 
 	// modrm == 0b10'000'000
 
@@ -29,117 +37,97 @@ uint8_t calc_modrm_byte(Sys8086* sys, Register* data_seg, int instruction_addres
 	uint8_t reg_val = (modrm & 0b00111000) >> 3;
 	uint8_t rm_val = modrm & 0b00000111;
 
-	int imm_position = 0;
-	int displacement_position = 0;
+	int16_t displacement16 = 0;
+	int8_t displacement8 = 0;
 
-	// No displacement
-	if ((mod_val == 0b00 && rm_val != 6) || mod_val == 0b11)
+	if (mod_val == 0b01)
 	{
-		displacement_position = -1; // not used
-		imm_position = 2;
+		displacement8 = (int8_t)read_address8(sys, modrm_address + 1, 0);
+		instruction->length += 2;
 	}
 
-	// 8 bit displacement
-	else if (mod_val == 0b01)
+	else if(mod_val == 0b10 || (mod_val == 0b00 && rm_val == 6))
 	{
-		displacement_position = 2;
-		imm_position = 3;
+		displacement16 = (int16_t)read_address16(sys, modrm_address + 1, 0);
+		instruction->length += 3;
 	}
 
-	// 16 bit displacement
-
-	else if (mod_val == 0b10 || (mod_val == 0b00 && rm_val == 6))
+	else
 	{
-		displacement_position = 2;
-		imm_position = 4;
+		instruction->length++;
 	}
+
+	uint16_t temp_regmem = 0;
 
 	// Using mem, not reg in regmem
 	if (mod_val == 0b01 || mod_val == 0b10 || mod_val == 0b00) // No displacement for mod 0 (except rm_val == 6)
 	{
-		*regmem = 0;
-
-		// Do we also have a immediate byte/word? then we can find that out to and give it to the caller
-
-		if (imm != NULL)
-		{
-			if (imm_word)
-			{
-				*(uint16_t*)imm = read_address16(sys, instruction_address + imm_position, 0);
-			}
-
-			else
-			{
-				*(uint8_t*)imm = read_address8(sys, instruction_address + imm_position, 0);
-			}
-		}
-
-		// Add registers to rmmem
+		instruction->regmem = 0;
 
 		switch (rm_val)
 		{
 		case 0:
 		{
-			*(uint16_t*)regmem += sys->cpu.bx.whole + sys->cpu.si.whole;
+			temp_regmem += sys->cpu.bx.whole + sys->cpu.si.whole;
 			break;
 		}
 		case 1:
 		{
-			*(uint16_t*)regmem += sys->cpu.bx.whole + sys->cpu.di.whole;
+			temp_regmem += sys->cpu.bx.whole + sys->cpu.di.whole;
 			break;
 		}
 		case 2:
 		{
 			if (default_seg)
 			{
-				data_seg = &sys->cpu.ss;
+				instruction->data_seg = &sys->cpu.ss;
 			}
 
-			*(uint16_t*)regmem += sys->cpu.bp.whole + sys->cpu.si.whole;
+			temp_regmem += sys->cpu.bp.whole + sys->cpu.si.whole;
 			break;
 		}
 		case 3:
 		{
 			if (default_seg)
 			{
-				data_seg = &sys->cpu.ss;
+				instruction->data_seg = &sys->cpu.ss;
 			}
 
-			*(uint16_t*)regmem += sys->cpu.bp.whole + sys->cpu.di.whole;
+			temp_regmem += sys->cpu.bp.whole + sys->cpu.di.whole;
 			break;
 		}
 		case 4:
 		{
-			*(uint16_t*)regmem += sys->cpu.si.whole;
+			temp_regmem += sys->cpu.si.whole;
 			break;
 		}
 		case 5:
 		{
-			*(uint16_t*)regmem += sys->cpu.di.whole;
+			temp_regmem += sys->cpu.di.whole;
 			break;
 		}
 		case 6:
 		{
 			if (mod_val == 0)
 			{
-				*(uint16_t*)regmem += (int16_t)read_address16(sys, instruction_address + displacement_position, 0);
+				temp_regmem += displacement16;
 			}
 
 			else
 			{
 				if (default_seg)
 				{
-					data_seg = &sys->cpu.ss;
+					instruction->data_seg = &sys->cpu.ss;
 				}
 
-				*(uint16_t*)regmem += sys->cpu.bp.whole;
+				temp_regmem += sys->cpu.bp.whole;
 			}
 
 			break;
 		}
 		case 7:
 		{
-			*(uint16_t*)regmem += sys->cpu.bx.whole;
+			temp_regmem += sys->cpu.bx.whole;
 			break;
 		}
 		}
@@ -148,42 +136,29 @@ uint8_t calc_modrm_byte(Sys8086* sys, Register* data_seg, int instruction_addres
 
 		if (mod_val == 0b01)
 		{
-			*(int8_t*)regmem += (int8_t)read_address8(sys, instruction_address + displacement_position, 0);
+			temp_regmem += displacement8;
 		}
 
 		else if (mod_val == 0b10)
 		{
-			*(int16_t*)regmem += (int16_t)read_address16(sys, instruction_address + displacement_position, 0);
+			temp_regmem += displacement16;
 		}
 
-		*regmem = &sys->memory[seg_mem(data_seg->whole, *(uint16_t*)regmem)];
+		instruction->regmem = &sys->memory[seg_mem(instruction->data_seg->whole, temp_regmem)];
 	}
 
 	// rm is same as reg, using rmreg
 
-	if (mod_val == 0b11)
+	else if (mod_val == 0b11)
 	{
-		if (imm != NULL)
+		if (instruction->width)
 		{
-			if (imm_word)
-			{
-				*(uint16_t*)imm = read_address16(sys, instruction_address + imm_position, 0);
-			}
-
-			else
-			{
-				*(uint8_t*)imm = read_address8(sys, instruction_address + imm_position, 0);
-			}
-		}
-
-		if (word)
-		{
-			*regmem = reg16_index(&sys->cpu, rm_val);
+			instruction->regmem = reg16_index(&sys->cpu, rm_val);
 		}
 
 		else
 		{
-			*regmem = reg8_index(&sys->cpu, rm_val);
+			instruction->regmem = reg8_index(&sys->cpu, rm_val);
 		}
 	}
 
@@ -191,34 +166,16 @@ uint8_t calc_modrm_byte(Sys8086* sys, Register* data_seg, int instruction_addres
 
 	if (sreg)
 	{
-		*reg = segment_reg_index(&sys->cpu, reg_val);
+		instruction->reg = segment_reg_index(&sys->cpu, reg_val);
 	}
 
-	else if (word)
+	else if (instruction->width)
 	{
-		*reg = reg16_index(&sys->cpu, reg_val);
+		instruction->reg = reg16_index(&sys->cpu, reg_val);
 	}
 
 	else
 	{
-		*reg = reg8_index(&sys->cpu, reg_val);
+		instruction->reg = reg8_index(&sys->cpu, reg_val);
 	}
-
-	int ip_increase = 0;
-
-	// Immediate is the last byte/word
-
-	ip_increase += imm_position;
-
-	if (imm_word && imm != NULL)
-	{
-		ip_increase += 2;
-	}
-
-	else if (imm != NULL)
-	{
-		ip_increase++;
-	}
-
-	return ip_increase; // Amount of how instruction pointer should go upasd
 }
