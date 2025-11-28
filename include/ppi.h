@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#define PPI_DIP_SWITCH 0xE2
+#define PPI_DIP_SWITCH 0x2C
 
 enum Ppi_Port
 {
