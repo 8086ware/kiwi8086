@@ -36,9 +36,10 @@ typedef struct Sys8086
 
 Sys8086* init_sys(FILE* image, FILE* bios_rom);
 
-int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg, int cur_inst);
+int cpu_exec_instruction(Sys8086* sys, Instruction* instruction);
+void cpu_get_instruction(Sys8086* sys, Instruction* instruction);
 void cpu_exec(Sys8086* sys);
-uint8_t calc_modrm_byte(Sys8086* sys, Register* data_seg, int instruction_address, void** reg, void** regmem, void* imm, _Bool word, _Bool imm_word, _Bool sreg);
+void calc_modrm_byte(Sys8086* sys, Instruction* instruction, int modrm_address, _Bool sreg);
 void pic_check_int(Sys8086* sys);
 void pit_cycle(Sys8086* sys);
 void display_render(Sys8086* sys);

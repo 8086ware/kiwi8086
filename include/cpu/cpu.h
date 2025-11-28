@@ -139,18 +139,19 @@ enum CPU_Group_Opcode_FF
 	PUSH_RM16 = 0x6, // Opcode group FF
 };
 
-enum CPU_Opcode_Prefix
+
+// http://forthworks.com:8800/temp/opcodes.html
+
+enum CPU_Opcode
 {
 	PREFIX_ES = 0x26,
 	PREFIX_CS = 0x2E,
 	PREFIX_SS = 0x36,
 	PREFIX_DS = 0x3E,
+
 	PREFIX_REPNE = 0xF2,
 	PREFIX_REP_OR_REPE = 0xF3,
-};
 
-enum CPU_Opcode
-{
 	GROUP_OPCODE_80 = 0x80,
 	GROUP_OPCODE_81 = 0x81,
 	GROUP_OPCODE_83 = 0x83,
@@ -190,7 +191,7 @@ enum CPU_Opcode
 
 	CALL_REL16 = 0xE8,
 	CALL_PTR16_16 = 0x9A,
-	
+
 	CBW = 0x98,
 
 	CLC = 0xF8,
@@ -420,6 +421,32 @@ typedef union Register
 
 	uint16_t whole;
 } Register;
+
+typedef struct Instruction
+{
+	enum CPU_Opcode rep;
+	int length;
+	enum CPU_Opcode operation;
+	Register* data_seg;
+
+	_Bool modrm;
+
+	uint8_t data1[2];
+	uint8_t data2[2];
+
+	// if modrm byte
+	void* regmem;
+	void* reg;
+
+	_Bool regmem_to_reg; // 1 = opposite
+
+	_Bool width; // 8bit = 0, 16bit = 1
+	_Bool data1_width;
+	_Bool data2_width;
+
+	uint16_t segment;
+	uint16_t offset;
+} Instruction;
 
 typedef struct CPU
 {

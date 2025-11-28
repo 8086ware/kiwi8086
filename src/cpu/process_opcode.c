@@ -1,78 +1,217 @@
 #include "system.h"
 #include "cpu/instructions.h"
 #include "memory.h"
+#include "cpu/opcode_desc.h"
 
-int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg, int cur_inst)
+void cpu_get_instruction(Sys8086* sys, Instruction* instruction)
 {
-	int ip_increase = 0;
+	_Bool prefix_instruction_done = 0;
 
-	// Only used if instruction has mod r/m byte
-	// We don't know if the registers we are accesing are 8 bit or 16 bit so cast them when dealing with them
-	void* reg = NULL;
-	void* regmem = NULL;
+	instruction->segment = sys->cpu.cs.whole;
+	instruction->offset = sys->cpu.ip.whole;
+	instruction->length = 0;
+	instruction->data_seg = NULL;
+	instruction->rep = -1; // no repetition
+	instruction->regmem = NULL;
+	instruction->reg = NULL;
+	instruction->modrm = 0;
 
-	if (opcode >= 0x60 && opcode <= 0x6F) // unused on 8086/8088, aliases for the jmp instructions
+	while (!prefix_instruction_done)
 	{
-		opcode += 0x10;
+		enum CPU_Opcode cur_byte = read_address8(sys, seg_mem(instruction->segment, instruction->offset + instruction->length), 0);
+
+		switch (cur_byte)
+		{
+		case PREFIX_ES:
+		case PREFIX_CS:
+		case PREFIX_SS:
+		case PREFIX_DS:
+		{
+			instruction->length++;
+			instruction->data_seg = segment_reg_index(&sys->cpu, (cur_byte >> 3) & 0x3);
+			break;
+		}
+		case PREFIX_REP_OR_REPE:
+		case PREFIX_REPNE:
+		{
+			instruction->rep = cur_byte; // repetition
+			instruction->length++;
+			break;
+		}
+		case 0xf0: // nothing
+			instruction->length++;
+			break;
+		default:
+		{
+			prefix_instruction_done = 1;
+		}
+		}
 	}
 
-	enum CPU_Opcode cur_byte = read_address8(sys, cur_inst, 0);
+	//http://forthworks.com:8800/temp/opcodes.html
 
-	switch (opcode) // actual opcode
+	enum CPU_Opcode opcode = read_address8(sys, seg_mem(instruction->segment, instruction->offset + instruction->length), 0);
+
+	instruction->operation = opcode;
+
+	instruction->length++;
+
+	instruction->width = opcode_desc[opcode] & 0x1;
+
+	instruction->data1_width = opcode_desc[opcode] & 0x100;
+	instruction->data2_width = opcode_desc[opcode] & 0x200;
+
+	if (instruction->width) // width
+	{
+		instruction->reg = &sys->cpu.ax.whole;
+	}
+
+	else
+	{
+		instruction->reg = &sys->cpu.ax.low;
+	}
+
+	if (opcode_desc[opcode] & 0x4) // modrm byte?
+	{
+		calc_modrm_byte(sys, instruction, seg_mem(instruction->segment, instruction->offset + instruction->length), opcode_desc[opcode] & 0x80);
+	}
+
+	if (opcode_desc[opcode] & 0x8 || ((opcode == GROUP_OPCODE_F7 || opcode == GROUP_OPCODE_F6) && (instruction->reg == &sys->cpu.ax.whole || instruction->reg == &sys->cpu.ax.low))) // data 1.
+	{
+		if (instruction->data1_width == 0)
+		{
+			instruction->data1[0] = read_address8(sys, seg_mem(instruction->segment, instruction->offset + instruction->length), 0);
+			instruction->length++;
+		}
+
+		else
+		{
+			*(uint16_t*)(instruction->data1) = read_address16(sys, seg_mem(instruction->segment, instruction->offset + instruction->length), 0);
+			instruction->length += 2;
+		}
+	}
+
+	if (opcode_desc[opcode] & 0x10) // data 2.
+	{
+		if (instruction->data2_width == 0)
+		{
+			instruction->data2[0] = read_address8(sys, seg_mem(instruction->segment, instruction->offset + instruction->length), 0);
+			instruction->length++;
+		}
+
+		else
+		{
+			*(uint16_t*)(instruction->data2) = read_address16(sys, seg_mem(instruction->segment, instruction->offset + instruction->length), 0);
+			instruction->length += 2;
+		}
+	}
+
+	if (opcode_desc[opcode] & 0x20) // is segment in the opcode?
+	{
+		instruction->reg = segment_reg_index(&sys->cpu, (opcode >> 3) & 0x3);
+	}
+
+	if (opcode_desc[opcode] & 0x40) // is register in opcode last 3 bits?
+	{
+		if (instruction->width)
+		{
+			instruction->reg = reg16_index(&sys->cpu, opcode & 0x7);
+		}
+
+		else
+		{
+			instruction->reg = reg8_index(&sys->cpu, opcode & 0x7);
+		}
+	}
+
+	if (opcode_desc[opcode] & 0x2) // reg/regmem direction
+	{
+		instruction->regmem_to_reg = 1;
+	}
+
+	if (instruction->data_seg == NULL)
+	{
+		instruction->data_seg = &sys->cpu.ds;
+	}
+
+	return instruction;
+}
+
+int cpu_exec_instruction(Sys8086* sys, Instruction* instruction)
+{
+	uint8_t group_opcode_instruction = 0;
+
+	for (int i = 0; i < 8; i++)
+	{
+		if (instruction->width)
+		{
+			if (instruction->reg == reg16_index(&sys->cpu, i))
+			{
+				group_opcode_instruction = i;
+				break;
+			}
+		}
+		
+		else
+		{
+			if (instruction->reg == reg8_index(&sys->cpu, i))
+			{
+				group_opcode_instruction = i;
+				break;
+			}
+		}
+	}
+
+	switch (instruction->operation) // actual opcode
 	{
 	case GROUP_OPCODE_80:
 	{
-		enum CPU_Group_Opcode_80 group_opcode_instruction = (read_address8(sys, cur_inst + 1, 0) & 0b00111000) >> 3;
-
-		uint8_t imm = 0;
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 0, 0, 0);
-
 		switch (group_opcode_instruction)
 		{
-		case ADD_RM8_IMM8: // 80 mm ii
+		case ADD_RM8_IMM8:
 		{
-			add8(sys, regmem, imm);
+			add8(sys, instruction->regmem, instruction->data1[0]);
 			break;
 		}
 		case ADC_RM8_IMM8:
 		{
-			add8(sys, regmem, imm + (uint8_t)(sys->cpu.flag.whole & FLAG_CARRY));
+			add8(sys, instruction->regmem, instruction->data1[0] + (uint8_t)(sys->cpu.flag.whole & FLAG_CARRY));
 			break;
 		}
 		case SBB_RM8_IMM8:
 		{
-			sub8(sys, regmem, imm + (uint8_t)(sys->cpu.flag.whole & FLAG_CARRY));
+			sub8(sys, instruction->regmem, instruction->data1[0] + (uint8_t)(sys->cpu.flag.whole & FLAG_CARRY));
 			break;
 		}
 		case AND_RM8_IMM8:
 		{
-			and8(sys, regmem, imm);
+			and8(sys, instruction->regmem, instruction->data1[0]);
 			break;
 		}
 		case CMP_RM8_IMM8: // 80 mm ii
 		{
-			cmp8(sys, *(uint8_t*)regmem, imm);
+			cmp8(sys, *(uint8_t*)instruction->regmem, instruction->data1[0]);
 			break;
 		}
 		case SUB_RM8_IMM8:
 		{
-			sub8(sys, regmem, imm);
+			sub8(sys, instruction->regmem, instruction->data1[0]);
 			break;
 		}
 		case OR_RM8_IMM8:
 		{
-			or8(sys, regmem, imm);
+			or8(sys, instruction->regmem, instruction->data1[0]);
 			break;
 		}
 		case XOR_RM8_IMM8:
 		{
-			xor8(sys, regmem, imm);
+			xor8(sys, instruction->regmem, instruction->data1[0]);
 			break;
 		}
 		default:
 		{
-			printf("Unknown Opcode %x %d\n", opcode, group_opcode_instruction);
-			ip_increase = 1;
+			printf("Unknown Opcode %x /%d\n", instruction->operation, group_opcode_instruction);
+
 			break;
 		}
 		}
@@ -80,56 +219,52 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	}
 	case GROUP_OPCODE_81:
 	{
-		enum CPU_Group_Opcode_81 group_opcode_instruction = (read_address8(sys, cur_inst + 1, 0) & 0b00111000) >> 3;
-		uint16_t imm = 0;
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 1, 0);
-
 		switch (group_opcode_instruction)
 		{
-		case ADD_RM16_IMM16: // 81 mm ii ii
+		case ADD_RM16_IMM16:
 		{
-			add16(sys, regmem, imm);
+			add16(sys, instruction->regmem, *(uint16_t*)instruction->data1);
 			break;
 		}
 		case ADC_RM16_IMM16:
 		{
-			add16(sys, regmem, imm + sys->cpu.flag.whole & FLAG_CARRY);
+			add16(sys, instruction->regmem, *(uint16_t*)instruction->data1 + (uint16_t)(sys->cpu.flag.whole & FLAG_CARRY));
 			break;
 		}
 		case SBB_RM16_IMM16:
 		{
-			sub16(sys, regmem, imm + sys->cpu.flag.whole & FLAG_CARRY);
+			sub16(sys, instruction->regmem, *(uint16_t*)instruction->data1 + (uint16_t)(sys->cpu.flag.whole & FLAG_CARRY));
 			break;
 		}
 		case AND_RM16_IMM16:
 		{
-			and16(sys, regmem, imm);
+			and16(sys, instruction->regmem, *(uint16_t*)instruction->data1);
 			break;
 		}
-		case CMP_RM16_IMM16: // 81 mm ii ii
+		case CMP_RM16_IMM16: // 83 mm ii
 		{
-			cmp16(sys, *(uint16_t*)regmem, imm);
+			cmp16(sys, *(uint16_t*)instruction->regmem, *(uint16_t*)instruction->data1);
 			break;
 		}
 		case SUB_RM16_IMM16:
 		{
-			sub16(sys, regmem, imm);
+			sub16(sys, instruction->regmem, *(uint16_t*)instruction->data1);
 			break;
 		}
 		case OR_RM16_IMM16:
 		{
-			or16(sys, regmem, imm);
+			or16(sys, instruction->regmem, *(uint16_t*)instruction->data1);
 			break;
 		}
 		case XOR_RM16_IMM16:
 		{
-			xor16(sys, regmem, imm);
+			xor16(sys, instruction->regmem, *(uint16_t*)instruction->data1);
 			break;
 		}
 		default:
 		{
-			printf("Unknown Opcode %x /%d\n", opcode, group_opcode_instruction);
-			ip_increase = 1;
+			printf("Unknown Opcode %x /%d\n", instruction->operation, group_opcode_instruction);
+			
 			break;
 		}
 		}
@@ -137,57 +272,52 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	}
 	case GROUP_OPCODE_83:
 	{
-		enum CPU_Group_Opcode_83 group_opcode_instruction = (read_address8(sys, cur_inst + 1, 0) & 0b00111000) >> 3;
-
-		uint8_t imm = 0;
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 0, 0);
-
 		switch (group_opcode_instruction)
 		{
 		case ADD_RM16_IMM8:
 		{
-			add16(sys, regmem, imm);
+			add16(sys, instruction->regmem, instruction->data1[0]);
 			break;
 		}
 		case ADC_RM16_IMM8:
 		{
-			add16(sys, regmem, imm + (uint8_t)(sys->cpu.flag.whole & FLAG_CARRY));
+			add16(sys, instruction->regmem, instruction->data1[0] + (uint8_t)(sys->cpu.flag.whole & FLAG_CARRY));
 			break;
 		}
 		case SBB_RM16_IMM8:
 		{
-			sub16(sys, regmem, imm + (uint8_t)(sys->cpu.flag.whole & FLAG_CARRY));
+			sub16(sys, instruction->regmem, instruction->data1[0] + (uint8_t)(sys->cpu.flag.whole & FLAG_CARRY));
 			break;
 		}
 		case AND_RM16_IMM8:
 		{
-			and16(sys, regmem, imm);
+			and16(sys, instruction->regmem, instruction->data1[0]);
 			break;
 		}
 		case CMP_RM16_IMM8: // 83 mm ii
 		{
-			cmp16(sys, *(uint16_t*)regmem, imm);
+			cmp16(sys, *(uint16_t*)instruction->regmem, instruction->data1[0]);
 			break;
 		}
 		case SUB_RM16_IMM8:
 		{
-			sub16(sys, regmem, imm);
+			sub16(sys, instruction->regmem, instruction->data1[0]);
 			break;
 		}
 		case OR_RM16_IMM8:
 		{
-			or16(sys, regmem, imm);
+			or16(sys, instruction->regmem, instruction->data1[0]);
 			break;
 		}
 		case XOR_RM16_IMM8:
 		{
-			xor16(sys, regmem, imm);
+			xor16(sys, instruction->regmem, instruction->data1[0]);
 			break;
 		}
 		default:
 		{
-			printf("Unknown Opcode %x /%d\n", opcode, group_opcode_instruction);
-			ip_increase = 1;
+			printf("Unknown Opcode %x /%d\n", instruction->operation, group_opcode_instruction);
+			
 			break;
 		}
 		}
@@ -195,50 +325,47 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	}
 	case GROUP_OPCODE_D0:
 	{
-		enum CPU_Group_Opcode_D0 group_opcode_instruction = (read_address8(sys, cur_inst + 1, 0) & 0b00111000) >> 3;
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-
 		switch (group_opcode_instruction)
 		{
 		case ROL_RM8_1:
 		{
-			rol8(sys, regmem, 1);
+			rol8(sys, instruction->regmem, 1);
 			break;
 		}
 		case ROR_RM8_1:
 		{
-			ror8(sys, regmem, 1);
+			ror8(sys, instruction->regmem, 1);
 			break;
 		}
 		case RCL_RM8_1:
 		{
-			rcl8(sys, regmem, 1);
+			rcl8(sys, instruction->regmem, 1);
 			break;
 		}
 		case RCR_RM8_1:
 		{
-			rcr8(sys, regmem, 1);
+			rcr8(sys, instruction->regmem, 1);
 			break;
 		}
 		case SAL_RM8_1: // D0 mm
 		{
-			sal8(sys, regmem, 1);
+			sal8(sys, instruction->regmem, 1);
 			break;
 		}
 		case SAR_RM8_1: // D0 mm
 		{
-			sar8(sys, regmem, 1);
+			sar8(sys, instruction->regmem, 1);
 			break;
 		}
 		case SHR_RM8_1: // D0 mm
 		{
-			shr8(sys, regmem, 1);
+			shr8(sys, instruction->regmem, 1);
 			break;
 		}
 		default:
 		{
-			printf("Unknown Opcode %x /%d\n", opcode, group_opcode_instruction);
-			ip_increase = 1;
+			printf("Unknown Opcode %x /%d\n", instruction->operation, group_opcode_instruction);
+			
 			break;
 		}
 		}
@@ -247,50 +374,47 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	}
 	case GROUP_OPCODE_D1:
 	{
-		enum CPU_Group_Opcode_D1 group_opcode_instruction = (read_address8(sys, cur_inst + 1, 0) & 0b00111000) >> 3;
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
 		switch (group_opcode_instruction)
 		{
 		case ROL_RM16_1:
 		{
-			rol16(sys, regmem, 1);
+			rol16(sys, instruction->regmem, 1);
 			break;
 		}
 		case ROR_RM16_1:
 		{
-			ror16(sys, regmem, 1);
+			ror16(sys, instruction->regmem, 1);
 			break;
 		}
 		case RCL_RM16_1:
 		{
-			rcl16(sys, regmem, 1);
+			rcl16(sys, instruction->regmem, 1);
 			break;
 		}
 		case RCR_RM16_1:
 		{
-			rcr16(sys, regmem, 1);
+			rcr16(sys, instruction->regmem, 1);
 			break;
 		}
 		case SAL_RM16_1: // D0 mm
 		{
-			sal16(sys, regmem, 1);
+			sal16(sys, instruction->regmem, 1);
 			break;
 		}
 		case SAR_RM16_1: // D0 mm
 		{
-			sar16(sys, regmem, 1);
+			sar16(sys, instruction->regmem, 1);
 			break;
 		}
 		case SHR_RM16_1: // D0 mm
 		{
-			shr16(sys, regmem, 1);
+			shr16(sys, instruction->regmem, 1);
 			break;
 		}
 		default:
 		{
-			printf("Unknown Opcode %x /%d\n", opcode, group_opcode_instruction);
-			ip_increase = 1;
+			printf("Unknown Opcode %x /%d\n", instruction->operation, group_opcode_instruction);
+			
 			break;
 		}
 		}
@@ -299,50 +423,47 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	}
 	case GROUP_OPCODE_D2:
 	{
-		enum CPU_Group_Opcode_D2 group_opcode_instruction = (read_address8(sys, cur_inst + 1, 0) & 0b00111000) >> 3;
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-
 		switch (group_opcode_instruction)
 		{
 		case ROL_RM8_CL:
 		{
-			rol8(sys, regmem, sys->cpu.cx.low);
+			rol8(sys, instruction->regmem, sys->cpu.cx.low);
 			break;
 		}
 		case ROR_RM8_CL:
 		{
-			ror8(sys, regmem, sys->cpu.cx.low);
+			ror8(sys, instruction->regmem, sys->cpu.cx.low);
 			break;
 		}
 		case RCL_RM8_CL:
 		{
-			rcl8(sys, regmem, sys->cpu.cx.low);
+			rcl8(sys, instruction->regmem, sys->cpu.cx.low);
 			break;
 		}
 		case RCR_RM8_CL:
 		{
-			rcr8(sys, regmem, sys->cpu.cx.low);
+			rcr8(sys, instruction->regmem, sys->cpu.cx.low);
 			break;
 		}
 		case SAL_RM8_CL: // D0 mm
 		{
-			sal8(sys, regmem, sys->cpu.cx.low);
+			sal8(sys, instruction->regmem, sys->cpu.cx.low);
 			break;
 		}
 		case SAR_RM8_CL: // D0 mm
 		{
-			sar8(sys, regmem, sys->cpu.cx.low);
+			sar8(sys, instruction->regmem, sys->cpu.cx.low);
 			break;
 		}
 		case SHR_RM8_CL: // D0 mm
 		{
-			shr8(sys, regmem, sys->cpu.cx.low);
+			shr8(sys, instruction->regmem, sys->cpu.cx.low);
 			break;
 		}
 		default:
 		{
-			printf("Unknown Opcode %x /%d\n", opcode, group_opcode_instruction);
-			ip_increase = 1;
+			printf("Unknown Opcode %x /%d\n", instruction->operation, group_opcode_instruction);
+			
 			break;
 		}
 		}
@@ -350,50 +471,46 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	}
 	case GROUP_OPCODE_D3:
 	{
-		enum CPU_Group_Opcode_D3 group_opcode_instruction = (read_address8(sys, cur_inst + 1, 0) & 0b00111000) >> 3;
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
 		switch (group_opcode_instruction)
 		{
 		case ROL_RM16_CL:
 		{
-			rol16(sys, regmem, sys->cpu.cx.low);
+			rol16(sys, instruction->regmem, sys->cpu.cx.low);
 			break;
 		}
 		case ROR_RM16_CL:
 		{
-			ror16(sys, regmem, sys->cpu.cx.low);
+			ror16(sys, instruction->regmem, sys->cpu.cx.low);
 			break;
 		}
 		case RCL_RM16_CL:
 		{
-			rcl16(sys, regmem, sys->cpu.cx.low);
+			rcl16(sys, instruction->regmem, sys->cpu.cx.low);
 			break;
 		}
 		case RCR_RM16_CL:
 		{
-			rcr16(sys, regmem, sys->cpu.cx.low);
+			rcr16(sys, instruction->regmem, sys->cpu.cx.low);
 			break;
 		}
 		case SAL_RM16_CL: // D0 mm
 		{
-			sal16(sys, regmem, sys->cpu.cx.low);
+			sal16(sys, instruction->regmem, sys->cpu.cx.low);
 			break;
 		}
 		case SAR_RM16_CL: // D0 mm
 		{
-			sar16(sys, regmem, sys->cpu.cx.low);
+			sar16(sys, instruction->regmem, sys->cpu.cx.low);
 			break;
 		}
 		case SHR_RM16_CL: // D0 mm
 		{
-			shr16(sys, regmem, sys->cpu.cx.low);
+			shr16(sys, instruction->regmem, sys->cpu.cx.low);
 			break;
 		}
 		default:
-		{
-			ip_increase = 1;
-			printf("Unknown Opcode %x /%d\n", opcode, group_opcode_instruction);
+		{	
+			printf("Unknown Opcode %x /%d\n", instruction->operation, group_opcode_instruction);
 			break;
 		}
 		}
@@ -401,61 +518,46 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	}
 	case GROUP_OPCODE_F6:
 	{
-		enum CPU_Group_Opcode_F6 group_opcode_instruction = (read_address8(sys, cur_inst + 1, 0) & 0b00111000) >> 3;
 		switch (group_opcode_instruction)
 		{
 		case TEST_RM8_IMM8:
 		{
-			uint8_t imm = 0;
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 0, 0, 0);
-			uint8_t temp = *(uint8_t*)regmem;
-			and8(sys, &temp, imm);
+			uint8_t temp = *(uint8_t*)instruction->regmem;
+			and8(sys, &temp, instruction->data1[0]);
 			break;
 		}
 		case MUL_RM8: // F6 mm
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-
-			mul8(sys, *(uint8_t*)regmem);
-
+			mul8(sys, *(uint8_t*)instruction->regmem);
 			break;
 		}
 		case NEG_RM8:
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-
-			neg8(sys, regmem);
+			neg8(sys, instruction->regmem);
 			break;
 		}
 		case NOT_RM8:
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-
-			*(uint8_t*)regmem = ~(*(uint8_t*)regmem);
+			*(uint8_t*)instruction->regmem = ~(*(uint8_t*)instruction->regmem);
 			break;
 		}
 		case DIV_RM8:
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-
 			uint16_t to_divide = sys->cpu.ax.whole;
-			sys->cpu.ax.low = to_divide / *(uint8_t*)regmem;
-			sys->cpu.ax.high = to_divide % *(uint8_t*)regmem;
+			sys->cpu.ax.low = to_divide / *(uint8_t*)instruction->regmem;
+			sys->cpu.ax.high = to_divide % *(uint8_t*)instruction->regmem;
 			break;
 		}
 		case IDIV_RM8:
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-
 			int16_t to_divide = sys->cpu.ax.whole;
-			sys->cpu.ax.low = to_divide / *(int8_t*)regmem;
-			sys->cpu.ax.high = to_divide % *(int8_t*)regmem;
+			sys->cpu.ax.low = to_divide / *(int8_t*)instruction->regmem;
+			sys->cpu.ax.high = to_divide % *(int8_t*)instruction->regmem;
 			break;
 		}
 		default:
-		{
-			ip_increase = 1;
-			printf("Unknown Opcode %x /%d\n", opcode, group_opcode_instruction);
+		{	
+			printf("Unknown Opcode %x /%d\n", instruction->operation, group_opcode_instruction);
 			break;
 		}
 		}
@@ -463,63 +565,48 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	}
 	case GROUP_OPCODE_F7:
 	{
-		enum CPU_Group_Opcode_F7 group_opcode_instruction = (read_address8(sys, cur_inst + 1, 0) & 0b00111000) >> 3;
 		switch (group_opcode_instruction)
 		{
 		case TEST_RM16_IMM16:
 		{
-			uint16_t imm = 0;
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm, 1, 1, 0);
-			uint16_t temp = *(uint16_t*)regmem;
-			and16(sys, &temp, imm);
+			uint16_t temp = *(uint16_t*)instruction->regmem;
+			and16(sys, &temp, *(uint16_t*)instruction->data1);
 			break;
 		}
 		case MUL_RM16: // F7 mm
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
-			mul16(sys, *(uint16_t*)regmem);
-
+			mul16(sys, *(uint16_t*)instruction->regmem);
 			break;
 		}
 		case NEG_RM16:
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
-			neg16(sys, regmem);
+			neg16(sys, instruction->regmem);
 			break;
 		}
 		case NOT_RM16:
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
-			*(uint16_t*)regmem = ~(*(uint16_t*)regmem);
+			*(uint16_t*)instruction->regmem = ~(*(uint16_t*)instruction->regmem);
 			break;
 		}
 		case DIV_RM16:
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
 			uint32_t value_to_divide = sys->cpu.dx.whole << 16;
 			value_to_divide |= sys->cpu.ax.whole;
-			sys->cpu.ax.whole = value_to_divide / *(uint16_t*)regmem;
-			sys->cpu.dx.whole = value_to_divide % *(uint16_t*)regmem;
+			sys->cpu.ax.whole = value_to_divide / *(uint16_t*)instruction->regmem;
+			sys->cpu.dx.whole = value_to_divide % *(uint16_t*)instruction->regmem;
 			break;
 		}
 		case IDIV_RM16:
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
 			int32_t value_to_divide = sys->cpu.dx.whole << 16;
 			value_to_divide |= sys->cpu.ax.whole;
-			sys->cpu.ax.whole = value_to_divide / *(int16_t*)regmem;
-			sys->cpu.dx.whole = value_to_divide % *(int16_t*)regmem;
+			sys->cpu.ax.whole = value_to_divide / *(int16_t*)instruction->regmem;
+			sys->cpu.dx.whole = value_to_divide % *(int16_t*)instruction->regmem;
 			break;
 		}
 		default:
 		{
-			ip_increase = 1;
-			printf("Unknown Opcode %x /%d\n", opcode, group_opcode_instruction);
+			printf("Unknown Opcode %x /%d\n", instruction->operation, group_opcode_instruction);
 			break;
 		}
 		}
@@ -527,25 +614,21 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	}
 	case GROUP_OPCODE_FE:
 	{
-		enum CPU_Group_Opcode_FE group_opcode_instruction = (read_address8(sys, cur_inst + 1, 0) & 0b00111000) >> 3;
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-
 		switch (group_opcode_instruction)
 		{
 		case DEC_RM8: // FE mm dd dd
 		{
-			dec8(sys, regmem);
+			dec8(sys, instruction->regmem);
 			break;
 		}
 		case INC_RM8: // FE mm dd dd
 		{
-			inc8(sys, regmem);
+			inc8(sys, instruction->regmem);
 			break;
 		}
 		default:
-		{
-			ip_increase = 1;
-			printf("Unknown Opcode %x /%d\n", opcode, group_opcode_instruction);
+		{	
+			printf("Unknown Opcode %x /%d\n", instruction->operation, group_opcode_instruction);
 			break;
 		}
 		}
@@ -554,73 +637,61 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	}
 	case GROUP_OPCODE_FF:
 	{
-		enum CPU_Group_Opcode_FF group_opcode_instruction = (read_address8(sys, cur_inst + 1, 0) & 0b00111000) >> 3;
 		switch (group_opcode_instruction)
 		{
 		case DEC_RM16: // FF mm dd dd
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-			dec16(sys, regmem);
+			dec16(sys, instruction->regmem);
 			break;
 		}
 		// 0x2
 		case CALL_RM16:
 		{
-			int call_stack_restore = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-			push(sys, sys->cpu.ip.whole + call_stack_restore);
-			jmp(sys, sys->cpu.cs.whole, *(uint16_t*)regmem);
-			break;
+			push(sys, sys->cpu.ip.whole + instruction->length);
+			jmp(sys, sys->cpu.cs.whole, *(uint16_t*)instruction->regmem);
+			return 1;
 		}
 		// 0x3
 		case CALL_M16_16: // FF mm
 		{
-			int call_stack_restore = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
 			push(sys, sys->cpu.cs.whole);
-			push(sys, sys->cpu.ip.whole + call_stack_restore);
+			push(sys, sys->cpu.ip.whole + instruction->length);
 
-			uint16_t segment = read_address16(sys, *(uint16_t*)regmem + 2, 0);
-			uint16_t offset = read_address16(sys, *(uint16_t*)regmem, 0);
+			uint16_t segment = read_address16(sys, *(uint16_t*)instruction->regmem + 2, 0);
+			uint16_t offset = read_address16(sys, *(uint16_t*)instruction->regmem, 0);
 
 			jmp(sys, segment, offset);
-			break;
+			return 1;
 		}
 		// 0x4
 		case JMP_RM16: // FF mm dd dd
 		{
-			calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-			jmp(sys, sys->cpu.cs.whole, *(uint16_t*)regmem);
-			break;
+			jmp(sys, sys->cpu.cs.whole, *(uint16_t*)instruction->regmem);
+			return 1;
 		}
 		case JMP_M16_16:
 		{
-			calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
-			uint16_t segment = read_address16(sys, *(uint16_t*)regmem + 2, 0);
-			uint16_t offset = read_address16(sys, *(uint16_t*)regmem, 0);
+			uint16_t segment = read_address16(sys, *(uint16_t*)instruction->regmem + 2, 0);
+			uint16_t offset = read_address16(sys, *(uint16_t*)instruction->regmem, 0);
 
 			jmp(sys, segment, offset);
-
-			break;
+			return 1;
 		}
 		// 0x6
 		case PUSH_RM16: // FF mm dd dd
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-			push(sys, *(uint16_t*)regmem);
+			push(sys, *(uint16_t*)instruction->regmem);
 			break;
 		}
 		// 0x0
 		case INC_RM16: // FF mm dd dd
 		{
-			ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-			inc16(sys, regmem);
+			inc16(sys, instruction->regmem);
 			break;
 		}
 		default:
 		{
-			ip_increase = 1;
-			printf("Unknown Opcode %x /%d\n", opcode, group_opcode_instruction);
+			printf("Unknown Opcode %x /%d\n", instruction->operation, group_opcode_instruction);
 			break;
 		}
 		}
@@ -629,38 +700,32 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	}
 	case AAD:
 	{
-		uint8_t imm = read_address8(sys, cur_inst + 1, 0);
 		uint8_t tempal = sys->cpu.ax.low;
 		uint8_t tempah = sys->cpu.ax.high;
 
-		sys->cpu.ax.low = (tempal + (tempah * imm)) & 0xff;
+		sys->cpu.ax.low = (tempal + (tempah * instruction->data1[0])) & 0xff;
 		sys->cpu.ax.high = 0;
-		
+
 		cpu_modify_flag_sign(&sys->cpu, sys->cpu.ax.low, 0);
 		cpu_modify_flag_zero(&sys->cpu, sys->cpu.ax.low);
 		cpu_modify_flag_parity(&sys->cpu, sys->cpu.ax.low);
-
-		ip_increase = 2;
 		break;
 	}
 	case AAM:
 	{
-		uint8_t imm = read_address8(sys, cur_inst + 1, 0);
 		uint8_t temp = sys->cpu.ax.low;
 
-		sys->cpu.ax.high = temp / imm;
-		sys->cpu.ax.low = temp % imm;
+		sys->cpu.ax.high = temp / instruction->data1[0];
+		sys->cpu.ax.low = temp % instruction->data1[0];
 
 		cpu_modify_flag_sign(&sys->cpu, sys->cpu.ax.low, 0);
 		cpu_modify_flag_zero(&sys->cpu, sys->cpu.ax.low);
 		cpu_modify_flag_parity(&sys->cpu, sys->cpu.ax.low);
-
-		ip_increase = 2;
 		break;
 	}
 	case AAS:
 	{
-		if((sys->cpu.ax.low & 0xf) > 9 || sys->cpu.flag.whole & FLAG_HALF_CARRY)
+		if ((sys->cpu.ax.low & 0xf) > 9 || sys->cpu.flag.whole & FLAG_HALF_CARRY)
 		{
 			sys->cpu.ax.whole -= 6;
 			sys->cpu.ax.high -= 1;
@@ -675,143 +740,140 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 			sys->cpu.flag.whole &= ~FLAG_CARRY;
 			sys->cpu.ax.low &= 0xf;
 		}
-
-		ip_increase = 1;
 		break;
 	}
-	case ADC_AL_IMM8:
-	{
-		uint8_t imm = read_address8(sys, cur_inst + 1, 0);
-		add8(sys, &sys->cpu.ax.low, imm + (uint8_t)(sys->cpu.flag.whole & FLAG_CARRY));
-		ip_increase += 2;
+	case ADC_AL_IMM8: // 04 ii
+		add8(sys, instruction->reg, instruction->data1[0] + (uint8_t)(sys->cpu.flag.whole & FLAG_CARRY));
 		break;
-	}
-	case ADC_AX_IMM16:
-	{
-		uint16_t imm = read_address16(sys, cur_inst + 1, 0);
-		add16(sys, &sys->cpu.ax.whole, imm + sys->cpu.flag.whole & FLAG_CARRY);
-		ip_increase += 3;
+	case ADC_AX_IMM16: // 05 ii ii
+		add16(sys, instruction->reg, *(uint16_t*)instruction->data1 + sys->cpu.flag.whole & FLAG_CARRY);
 		break;
-	}
 	case ADC_RM8_R8:
-	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-		add8(sys, regmem, *(uint8_t*)reg + (uint8_t)(sys->cpu.flag.whole & FLAG_CARRY));
-		break;
-	}
 	case ADC_RM16_R16:
-	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-		add16(sys, regmem, *(uint16_t*)reg + sys->cpu.flag.whole & FLAG_CARRY);
-		break;
-	}
 	case ADC_R8_RM8:
-	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-		add8(sys, reg, *(uint8_t*)regmem + (uint8_t)(sys->cpu.flag.whole & FLAG_CARRY));
-		break;
-	}
 	case ADC_R16_RM16:
 	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-		add16(sys, reg, *(uint16_t*)regmem + sys->cpu.flag.whole & FLAG_CARRY);
-		break;
-	}
-	case ADD_RM8_R8: // 00 mm
-	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-		add8(sys, regmem, *(uint8_t*)reg);
-		break;
-	}
-	case ADD_RM16_R16: // 01 mm
-	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-		add16(sys, regmem, *(uint16_t*)reg);
-		break;
-	}
-	case ADD_R8_RM8: // 02 mm
-	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-		add8(sys, reg, *(uint8_t*)regmem);
-		break;
-	}
-	case ADD_R16_RM16: // 03 mm
-	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-		add16(sys, reg, *(uint16_t*)regmem);
+		if (instruction->regmem_to_reg)
+		{
+			if (instruction->width)
+			{
+				add16(sys, instruction->reg, *(uint16_t*)instruction->regmem + sys->cpu.flag.whole & FLAG_CARRY);
+			}
+
+			else
+			{
+				add8(sys, instruction->reg, *(uint8_t*)instruction->regmem + (uint8_t)(sys->cpu.flag.whole & FLAG_CARRY));
+			}
+		}
+
+		else
+		{
+			if (instruction->width)
+			{
+				add16(sys, instruction->regmem, *(uint16_t*)instruction->reg + sys->cpu.flag.whole & FLAG_CARRY);
+			}
+
+			else
+			{
+				add8(sys, instruction->regmem, *(uint8_t*)instruction->reg + (uint8_t)(sys->cpu.flag.whole & FLAG_CARRY));
+			}
+		}
 		break;
 	}
 	case ADD_AL_IMM8: // 04 ii
-	{
-		add8(sys, &sys->cpu.ax.low, read_address8(sys, cur_inst + 1, 0));
-		ip_increase = 2;
+		add8(sys, instruction->reg, instruction->data1[0]);
 		break;
-	}
 	case ADD_AX_IMM16: // 05 ii ii
+		add16(sys, instruction->reg, *(uint16_t*)instruction->data1);
+		break;
+	case ADD_RM8_R8: // 00 mm
+	case ADD_RM16_R16: // 01 mm		
+	case ADD_R8_RM8: // 02 mm
+	case ADD_R16_RM16: // 03 mm
 	{
-		add16(sys, &sys->cpu.ax.whole, read_address16(sys, cur_inst + 1, 0));
-		ip_increase = 3;
+		if (instruction->regmem_to_reg)
+		{
+			if (instruction->width)
+			{
+				add16(sys, instruction->reg, *(uint16_t*)instruction->regmem);
+			}
+
+			else
+			{
+				add8(sys, instruction->reg, *(uint8_t*)instruction->regmem);
+			}
+		}
+
+		else
+		{
+			if (instruction->width)
+			{
+				add16(sys, instruction->regmem, *(uint16_t*)instruction->reg);
+			}
+
+			else
+			{
+				add8(sys, instruction->regmem, *(uint8_t*)instruction->reg);
+			}
+		}
 		break;
 	}
 	case AND_AL_IMM8:
-	{
-		uint8_t imm = read_address8(sys, cur_inst + 1, 0);
-		and8(sys, &sys->cpu.ax.low, imm);
-		ip_increase = 2;
+		and8(sys, instruction->reg, instruction->data1[0]);
 		break;
-	}
 	case AND_AX_IMM16:
-	{
-		uint16_t imm = read_address16(sys, cur_inst + 1, 0);
-		and16(sys, &sys->cpu.ax.whole, imm);
-		ip_increase = 3;
+		and16(sys, instruction->reg, *(uint16_t*)instruction->data1);
 		break;
-	}
 	case AND_RM8_R8:
-	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-		and8(sys, regmem, *(uint8_t*)reg);
-		break;
-	}
 	case AND_RM16_R16:
-	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-		and16(sys, regmem, *(uint16_t*)reg);
-		break;
-	}
 	case AND_R8_RM8:
-	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-		and8(sys, reg, *(uint8_t*)regmem);
-		break;
-	}
 	case AND_R16_RM16:
 	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-		and16(sys, reg, *(uint16_t*)regmem);
+		if (instruction->regmem_to_reg)
+		{
+			if (instruction->width)
+			{
+				and16(sys, instruction->reg, *(uint16_t*)instruction->regmem);
+			}
+
+			else
+			{
+				and8(sys, instruction->reg, *(uint8_t*)instruction->regmem);
+			}
+		}
+
+		else
+		{
+			if (instruction->width)
+			{
+				and16(sys, instruction->regmem, *(uint16_t*)instruction->reg);
+			}
+
+			else
+			{
+				and8(sys, instruction->regmem, *(uint8_t*)instruction->reg);
+			}
+		}
 		break;
 	}
 	case CALL_PTR16_16: // 9A ii ii ii ii
 	{
 		push(sys, sys->cpu.cs.whole);
-		push(sys, sys->cpu.ip.whole);
+		push(sys, sys->cpu.ip.whole + instruction->length);
 
-		uint16_t offset = read_address16(sys, cur_inst + 1, 0);
-		uint16_t segment = read_address16(sys, cur_inst + 3, 0);
+		jmp(sys, *(uint16_t*)instruction->data1, *(uint16_t*)instruction->data2);
 
-		jmp(sys, segment, offset);
-
-		break;
+		return 1;
 	}
 	case CALL_REL16: // E8 ii ii
 	{
-		push(sys, sys->cpu.ip.whole + 3);
+		push(sys, sys->cpu.ip.whole + instruction->length);
 
-		int16_t call_value = read_address16(sys, cur_inst + 1, 0) + 3;
+		int16_t call_value = *(uint16_t*)instruction->data1 + instruction->length;
 
 		jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + call_value);
 
-		break;
+		return 1;
 	}
 	case CBW:
 	{
@@ -824,26 +886,21 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 		{
 			sys->cpu.ax.high = 0;
 		}
-
-		ip_increase = 1;
 		break;
 	}
 	case CLC:
 	{
 		sys->cpu.flag.whole &= ~FLAG_CARRY;
-		ip_increase = 1;
 		break;
 	}
 	case CLD:
 	{
 		sys->cpu.flag.whole &= ~FLAG_DIRECTION;
-		ip_increase = 1;
 		break;
 	}
 	case CLI:
 	{
 		sys->cpu.flag.whole &= ~FLAG_INTERRUPT;
-		ip_increase = 1;
 		break;
 	}
 	case CMC:
@@ -858,48 +915,49 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 			sys->cpu.flag.whole |= FLAG_CARRY;
 		}
 
-		ip_increase = 1;
 		break;
 	}
 	case CMP_AL_IMM8: // 3C ii
-	{
-		cmp8(sys, sys->cpu.ax.low, read_address8(sys, cur_inst + 1, 0));
-		ip_increase = 2;
+		cmp8(sys, *(uint8_t*)instruction->reg, instruction->data1[0]);
 		break;
-	}
 	case CMP_AX_IMM16: // 3D ii ii
-	{
-		cmp16(sys, sys->cpu.ax.whole, read_address16(sys, cur_inst + 1, 0));
-		ip_increase = 3;
+		cmp16(sys, *(uint16_t*)instruction->reg, *(uint16_t*)instruction->data1);
 		break;
-	}
 	case CMP_RM8_R8: // 38 mm
-	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-		cmp8(sys, *(uint8_t*)regmem, *(uint8_t*)reg);
-		break;
-	}
 	case CMP_RM16_R16: // 39 mm
-	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-		cmp16(sys, *(uint16_t*)regmem, *(uint16_t*)reg);
-		break;
-	}
 	case CMP_R8_RM8: // 3A mm
-	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-		cmp8(sys, *(uint8_t*)reg, *(uint8_t*)regmem);
-		break;
-	}
 	case CMP_R16_RM16: // 3B mm
 	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-		cmp16(sys, *(uint16_t*)reg, *(uint16_t*)regmem);
+		if (instruction->regmem_to_reg)
+		{
+			if (instruction->width)
+			{
+				cmp16(sys, *(uint16_t*)instruction->reg, *(uint16_t*)instruction->regmem);
+			}
+
+			else
+			{
+				cmp8(sys, *(uint8_t*)instruction->reg, *(uint8_t*)instruction->regmem);
+			}
+		}
+
+		else
+		{
+			if (instruction->width)
+			{
+				cmp16(sys, *(uint16_t*)instruction->regmem, *(uint16_t*)instruction->reg);
+			}
+
+			else
+			{
+				cmp8(sys, *(uint8_t*)instruction->regmem, *(uint8_t*)instruction->reg);
+			}
+		}
 		break;
 	}
 	case CMPSB:
 	{
-		cmp8(sys, read_address8(sys, seg_mem(data_seg->whole, sys->cpu.si.whole), 0), read_address8(sys, seg_mem(sys->cpu.es.whole, sys->cpu.di.whole), 0));
+		cmp8(sys, read_address8(sys, seg_mem(instruction->data_seg->whole, sys->cpu.si.whole), 0), read_address8(sys, seg_mem(sys->cpu.es.whole, sys->cpu.di.whole), 0));
 
 		if (sys->cpu.flag.whole & FLAG_DIRECTION)
 		{
@@ -913,13 +971,12 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 			sys->cpu.di.whole++;
 		}
 
-		ip_increase = 1;
 		sys->cpu.zero_flag_check = 1;
 		break;
 	}
 	case CMPSW:
 	{
-		cmp16(sys, read_address16(sys, seg_mem(data_seg->whole, sys->cpu.si.whole), 0), read_address16(sys, seg_mem(sys->cpu.es.whole, sys->cpu.di.whole), 0));
+		cmp16(sys, read_address16(sys, seg_mem(instruction->data_seg->whole, sys->cpu.si.whole), 0), read_address16(sys, seg_mem(sys->cpu.es.whole, sys->cpu.di.whole), 0));
 
 		if (sys->cpu.flag.whole & FLAG_DIRECTION)
 		{
@@ -933,7 +990,6 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 			sys->cpu.di.whole += 2;
 		}
 
-		ip_increase = 1;
 		sys->cpu.zero_flag_check = 1;
 		break;
 	}
@@ -943,13 +999,12 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 		{
 			sys->cpu.dx.whole = 0xFFFF;
 		}
-		
+
 		else
 		{
 			sys->cpu.dx.whole = 0;
 		}
 
-		ip_increase = 1;
 		break;
 	}
 	case DAS:
@@ -959,11 +1014,11 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 
 		sys->cpu.flag.whole &= ~FLAG_CARRY;
 
-		if((sys->cpu.ax.low & 0xf) > 9 || sys->cpu.flag.whole & FLAG_HALF_CARRY)
+		if ((sys->cpu.ax.low & 0xf) > 9 || sys->cpu.flag.whole & FLAG_HALF_CARRY)
 		{
 			sys->cpu.ax.low -= 6;
-			
-			if(old_cf)
+
+			if (old_cf)
 			{
 				sys->cpu.flag.whole |= FLAG_CARRY;
 			}
@@ -972,7 +1027,7 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 			{
 				sys->cpu.flag.whole &= ~FLAG_CARRY;
 			}
-			
+
 			sys->cpu.flag.whole |= FLAG_HALF_CARRY;
 		}
 
@@ -981,13 +1036,11 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 			sys->cpu.flag.whole &= ~FLAG_HALF_CARRY;
 		}
 
-		if((old_al > 0x99) || old_cf)
+		if ((old_al > 0x99) || old_cf)
 		{
 			sys->cpu.ax.low -= 0x60;
 			sys->cpu.flag.whole |= FLAG_CARRY;
 		}
-
-		ip_increase = 1;
 		break;
 	}
 	// 0x48 + i
@@ -1000,44 +1053,32 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	case DEC_SI:
 	case DEC_DI:
 	{
-		int reg_code = opcode - DEC_AX;
-
-		reg = reg16_index(&sys->cpu, reg_code);
-
-		dec16(sys, reg);
-		ip_increase = 1;
+		dec16(sys, instruction->reg);
 		break;
 	}
 	case HLT:
 	{
 		sys->cpu.halted = 1;
-		ip_increase = 1;
 		break;
 	}
 	case IN_AL_IMM8:
 	{
-		uint8_t address = read_address8(sys, cur_inst + 1, 0);
-		sys->cpu.ax.low = read_address8(sys, address, 1);
-		ip_increase = 2;
+		sys->cpu.ax.low = read_address8(sys, instruction->data1[0], 1);
 		break;
 	}
 	case IN_AX_IMM8:
 	{
-		uint8_t address = read_address8(sys, cur_inst + 1, 0);
-		sys->cpu.ax.whole = read_address16(sys, address, 1);
-		ip_increase = 2;
+		sys->cpu.ax.whole = read_address16(sys, instruction->data1[0], 1);
 		break;
 	}
 	case IN_AL_DX:
 	{
 		sys->cpu.ax.low = read_address8(sys, sys->cpu.dx.whole, 1);
-		ip_increase = 1;
 		break;
 	}
 	case IN_AX_DX:
 	{
 		sys->cpu.ax.whole = read_address16(sys, sys->cpu.dx.whole, 1);
-		ip_increase = 1;
 		break;
 	}
 	// 40 + i
@@ -1050,18 +1091,12 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	case INC_SI:
 	case INC_DI:
 	{
-		int reg_code = opcode - INC_AX;
-
-		reg = reg16_index(&sys->cpu, reg_code);
-
-		inc16(sys, reg);
-
-		ip_increase = 1;
+		inc16(sys, instruction->reg);
 		break;
 	}
 	case INT_IMM8: // CD ii
 	{
-		uint8_t interrupt = read_address8(sys, cur_inst + 1, 0);
+		uint8_t interrupt = instruction->data1[0];
 
 		// Look up in interrupt vector table. Example: int 0x10, 0x10 * 4 = 0x40, get offset at 0x40 and segment at 0x42, jump there 
 
@@ -1070,11 +1105,11 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 
 		push(sys, sys->cpu.flag.whole);
 		push(sys, sys->cpu.cs.whole);
-		push(sys, sys->cpu.ip.whole + 2);
+		push(sys, sys->cpu.ip.whole + instruction->length);
 
 		jmp(sys, interrupt_segment, interrupt_offset);
 
-		break;
+		return 1;
 	}
 	case IRET: // CF
 	{
@@ -1084,32 +1119,23 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 		pop(sys, &sys->cpu.cs.whole);
 		pop(sys, &sys->cpu.flag.whole);
 
-		break;
+		return 1;
 	}
 	case JA_REL8: // 77 ii
 	{
 		if ((sys->cpu.flag.whole & FLAG_CARRY) == 0 && (sys->cpu.flag.whole & FLAG_ZERO) == 0)
 		{
-			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
+			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)instruction->data1[0] + instruction->length);
+			return 1;
 		}
-
-		else
-		{
-			ip_increase += 2;
-		}
-
 		break;
 	}
 	case JAE_REL8: // 73 ii // Same as JNB_REL8, JNC_REL8
 	{
 		if ((sys->cpu.flag.whole & FLAG_CARRY) == 0)
 		{
-			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
-		}
-
-		else
-		{
-			ip_increase += 2;
+			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)instruction->data1[0] + instruction->length);
+			return 1;
 		}
 		break;
 	}
@@ -1117,26 +1143,17 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	{
 		if (sys->cpu.flag.whole & FLAG_CARRY)
 		{
-			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
+			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)instruction->data1[0] + instruction->length);
+			return 1;
 		}
-
-		else
-		{
-			ip_increase += 2;
-		}
-
 		break;
 	}
 	case JBE_REL8: // 76 ii // Same as JNA_REL8
 	{
 		if (sys->cpu.flag.whole & FLAG_CARRY || sys->cpu.flag.whole & FLAG_ZERO)
 		{
-			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
-		}
-
-		else
-		{
-			ip_increase += 2;
+			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)instruction->data1[0] + instruction->length);
+			return 1;
 		}
 		break;
 	}
@@ -1144,241 +1161,164 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	{
 		if (sys->cpu.cx.whole == 0)
 		{
-			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
+			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)instruction->data1[0] + instruction->length);
+			return 1;
 		}
-
-		else
-		{
-			ip_increase += 2;
-		}
-
 		break;
 	}
 	case JE_REL8: // 74 ii // Same as JZ_REL8
 	{
 		if (sys->cpu.flag.whole & FLAG_ZERO)
 		{
-			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
+			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)instruction->data1[0] + instruction->length);
+			return 1;
 		}
-
-		else
-		{
-			ip_increase += 2;
-		}
-
 		break;
 	}
 	case JG_REL8: // 7f ii // Same as JNLE_REL8
 	{
 		if ((sys->cpu.flag.whole & FLAG_ZERO) == 0 && (((sys->cpu.flag.whole & FLAG_SIGN) == 0 && (sys->cpu.flag.whole & FLAG_OVERFLOW) == 0) || ((sys->cpu.flag.whole & FLAG_SIGN) && (sys->cpu.flag.whole & FLAG_OVERFLOW))))
 		{
-			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
+			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)instruction->data1[0] + instruction->length);
+			return 1;
 		}
-
-		else
-		{
-			ip_increase += 2;
-		}
-
 		break;
 	}
 	case JGE_REL8: // 7D ii // Same as JNL_REL8
 	{
 		if (((sys->cpu.flag.whole & FLAG_SIGN) == 0 && (sys->cpu.flag.whole & FLAG_OVERFLOW) == 0) || ((sys->cpu.flag.whole & FLAG_SIGN) && (sys->cpu.flag.whole & FLAG_OVERFLOW)))
 		{
-			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
+			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)instruction->data1[0] + instruction->length);
+			return 1;
 		}
-
-		else
-		{
-			ip_increase += 2;
-		}
-
 		break;
 	}
 	case JL_REL8: // 7c ii // Same as JNGE_REL8
 	{
 		if (((sys->cpu.flag.whole & FLAG_SIGN) == 0 && sys->cpu.flag.whole & FLAG_OVERFLOW) || (sys->cpu.flag.whole & FLAG_SIGN && (sys->cpu.flag.whole & FLAG_OVERFLOW) == 0))
 		{
-			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
+			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)instruction->data1[0] + instruction->length);
+			return 1;
 		}
-
-		else
-		{
-			ip_increase += 2;
-		}
-
 		break;
 	}
 	case JLE_REL8: // 7E ii // Same as JNG_REL8
 	{
 		if (sys->cpu.flag.whole & FLAG_ZERO || (((sys->cpu.flag.whole & FLAG_SIGN) == 0 && sys->cpu.flag.whole & FLAG_OVERFLOW) || (sys->cpu.flag.whole & FLAG_SIGN && (sys->cpu.flag.whole & FLAG_OVERFLOW) == 0)))
 		{
-			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
+			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)instruction->data1[0] + instruction->length);
+			return 1;
 		}
-
-		else
-		{
-			ip_increase += 2;
-		}
-
 		break;
 	}
 	case JNE_REL8: // 75 ii // Same as JNZ_REL8
 	{
 		if ((sys->cpu.flag.whole & FLAG_ZERO) == 0)
 		{
-			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
+			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)instruction->data1[0] + instruction->length);
+			return 1;
 		}
-
-		else
-		{
-			ip_increase += 2;
-		}
-
 		break;
 	}
 	case JNO_REL8: // 71 ii
 	{
 		if ((sys->cpu.flag.whole & FLAG_OVERFLOW) == 0)
 		{
-			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
+			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)instruction->data1[0] + instruction->length);
+			return 1;
 		}
-
-		else
-		{
-			ip_increase += 2;
-		}
-
 		break;
 	}
 	case JNP_REL8: // 7b ii // Same as JPO_REL8
 	{
 		if ((sys->cpu.flag.whole & FLAG_PARITY) == 0)
 		{
-			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
+			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)instruction->data1[0] + instruction->length);
+			return 1;
 		}
-
-		else
-		{
-			ip_increase += 2;
-		}
-
 		break;
 	}
 	case JNS_REL8: // 79 ii
 	{
 		if ((sys->cpu.flag.whole & FLAG_SIGN) == 0)
 		{
-			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
+			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)instruction->data1[0] + instruction->length);
+			return 1;
 		}
-
-		else
-		{
-			ip_increase += 2;
-		}
-
 		break;
 	}
 	case JO_REL8: // 77 ii
 	{
 		if (sys->cpu.flag.whole & FLAG_OVERFLOW)
 		{
-			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
+			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)instruction->data1[0] + instruction->length);
+			return 1;
 		}
-
-		else
-		{
-			ip_increase += 2;
-		}
-
 		break;
 	}
 	case JP_REL8: // 7A ii // Same as JPE_REL8
 	{
 		if (sys->cpu.flag.whole & FLAG_PARITY)
 		{
-			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
+			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)instruction->data1[0] + instruction->length);
+			return 1;
 		}
-
-		else
-		{
-			ip_increase += 2;
-		}
-
 		break;
 	}
 	case JS_REL8: // 78 ii
 	{
 		if (sys->cpu.flag.whole & FLAG_SIGN)
 		{
-			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)read_address8(sys, cur_inst + 1, 0) + 2);
+			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)instruction->data1[0] + instruction->length);
+			return 1;
 		}
-
-		else
-		{
-			ip_increase += 2;
-		}
-
 		break;
 	}
 	case JMP_REL8: // EB ii
 	{
-		int8_t jmp_value = read_address8(sys, cur_inst + 1, 0) + 2;
-		jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + jmp_value);
-		break;
+		jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)instruction->data1[0] + instruction->length);
+		return 1;
 	}
 	case JMP_REL16: // E9 ii ii
 	{
-		int16_t jmp_value = read_address16(sys, cur_inst + 1, 0) + 3;
-		jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + jmp_value);
-		break;
+		jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + *(int16_t*)instruction->data1 + instruction->length);
+		return 1;
 	}
 	case JMP_PTR16_16: // EA ii ii ii ii
 	{
-		uint16_t new_ip = read_address16(sys, cur_inst + 1, 0);
-		uint16_t new_cs = read_address16(sys, cur_inst + 3, 0);
+		uint16_t new_ip = *(uint16_t*)instruction->data1;
+		uint16_t new_cs = *(uint16_t*)instruction->data2;
 
 		jmp(sys, new_cs, new_ip);
-		break;
+		return 1;
 	}
 	case LAHF:
 	{
 		sys->cpu.ax.high = sys->cpu.flag.whole & 0x00ff;
-		ip_increase = 1;
 		break;
 	}
 	case LDS:
 	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
-		*(uint16_t*)reg = *(uint16_t*)regmem;
-		(uint8_t*)regmem += 2;
-		sys->cpu.ds.whole = *(uint16_t*)regmem;
-
+		*(uint16_t*)instruction->reg = *(uint16_t*)instruction->regmem;
+		(uint8_t*)instruction->regmem += 2;
+		sys->cpu.ds.whole = *(uint16_t*)instruction->regmem;
 		break;
 	}
 	case LEA:
 	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
-		*(uint16_t*)reg = (((uint8_t*)regmem - (data_seg->whole * 0x10)) - (uint8_t*)sys->memory);
-
+		*(uint16_t*)instruction->reg = (((uint8_t*)instruction->regmem - (instruction->data_seg->whole * 0x10)) - (uint8_t*)(&sys->memory));
 		break;
 	}
 	case LES:
 	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
-		*(uint16_t*)reg = *(uint16_t*)regmem;
-		(uint8_t*)regmem += 2;
-		sys->cpu.es.whole = *(uint16_t*)regmem;
-
+		*(uint16_t*)instruction->reg = *(uint16_t*)instruction->regmem;
+		(uint8_t*)instruction->regmem += 2;
+		sys->cpu.es.whole = *(uint16_t*)instruction->regmem;
 		break;
 	}
 	case LODSB:
 	{
-		sys->cpu.ax.low = read_address8(sys, seg_mem(data_seg->whole, sys->cpu.si.whole), 0);
+		sys->cpu.ax.low = read_address8(sys, seg_mem(instruction->data_seg->whole, sys->cpu.si.whole), 0);
 
 		if (sys->cpu.flag.whole & FLAG_DIRECTION)
 		{
@@ -1390,12 +1330,12 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 			sys->cpu.si.whole++;
 		}
 
-		ip_increase = 1;
+		
 		break;
 	}
 	case LODSW:
 	{
-		sys->cpu.ax.whole = read_address16(sys, seg_mem(data_seg->whole, sys->cpu.si.whole), 0);
+		sys->cpu.ax.whole = read_address16(sys, seg_mem(instruction->data_seg->whole, sys->cpu.si.whole), 0);
 
 		if (sys->cpu.flag.whole & FLAG_DIRECTION)
 		{
@@ -1407,7 +1347,6 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 			sys->cpu.si.whole += 2;
 		}
 
-		ip_increase = 1;
 		break;
 	}
 	case LOOP_REL8:
@@ -1416,14 +1355,8 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 
 		if (sys->cpu.cx.whole != 0)
 		{
-			int8_t jmp_value = read_address8(sys, cur_inst + 1, 0) + 2;
-
-			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + jmp_value);
-		}
-
-		else
-		{
-			ip_increase += 2;
+			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)instruction->data1[0] + instruction->length);
+			return 1;
 		}
 
 		break;
@@ -1434,14 +1367,8 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 
 		if (sys->cpu.cx.whole != 0 && sys->cpu.flag.whole & FLAG_ZERO)
 		{
-			int8_t jmp_value = read_address8(sys, cur_inst + 1, 0) + 2;
-
-			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + jmp_value);
-		}
-
-		else
-		{
-			ip_increase += 2;
+			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)instruction->data1[0] + instruction->length);
+			return 1;
 		}
 
 		break;
@@ -1452,80 +1379,50 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 
 		if (sys->cpu.cx.whole != 0 && (sys->cpu.flag.whole & FLAG_ZERO) == 0)
 		{
-			int8_t jmp_value = read_address8(sys, cur_inst + 1, 0) + 2;
+			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + (int8_t)instruction->data1[0] + instruction->length);
+			return 1;
+		}
 
-			jmp(sys, sys->cpu.cs.whole, sys->cpu.ip.whole + jmp_value);
+		break;
+	}
+	case MOV_RM8_IMM8: // C6 mm dd dd ii
+		mov8(sys, instruction->regmem, &instruction->data1[0]);
+		break;
+	case MOV_RM16_IMM16: // C7 mm dd dd ii ii
+		mov16(sys, instruction->regmem, &instruction->data1);
+		break;
+	case MOV_RM8_R8: // 88 mm dd dd
+	case MOV_RM16_R16: // 89 mm dd dd
+	case MOV_R8_RM8: // 8A mm dd dd
+	case MOV_R16_RM16: // 8B mm dd dd
+	case MOV_RM16_SREG: // 8C mm dd dd
+	case MOV_SREG_RM16: // 8E mm dd dd
+	{
+		if (instruction->regmem_to_reg)
+		{
+			if (instruction->width)
+			{
+				mov16(sys, instruction->reg, instruction->regmem);
+			}
+
+			else
+			{
+				mov8(sys, instruction->reg, instruction->regmem);
+			}
 		}
 
 		else
 		{
-			ip_increase += 2;
-		}
+			if (instruction->width)
+			{
+				mov16(sys, instruction->regmem, instruction->reg);
+			}
 
-		break;
-	}
-	case MOV_RM8_R8: // 88 mm dd dd
-	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-		mov8(sys, regmem, reg);
-		break;
-	}
-	case MOV_RM16_R16: // 89 mm dd dd
-	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-		mov16(sys, regmem, reg);
-		break;
-	}
-	case MOV_R8_RM8: // 8A mm dd dd
-	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-		mov8(sys, reg, regmem);
-		break;
-	}
-	case MOV_R16_RM16: // 8B mm dd dd
-	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-		mov16(sys, reg, regmem);
-		break;
-	}
-	case MOV_RM16_SREG: // 8C mm dd dd
-	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 1);
-		mov16(sys, regmem, reg);
-		break;
-	}
-	case MOV_SREG_RM16: // 8E mm dd dd
-	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 1);
-		mov16(sys, reg, regmem);
-		break;
-	}
-	case MOV_AL_MOFFS8: // A0 dd dd
-	{
-		uint16_t moffs8 = read_address16(sys, cur_inst + 1, 0);
-		mov8(sys, &sys->cpu.ax.low, sys->memory + seg_mem(data_seg->whole, moffs8));
-		ip_increase = 3;
-		break;
-	}
-	case MOV_AX_MOFFS16: // A1 dd dd
-	{
-		uint16_t moffs16 = read_address16(sys, cur_inst + 1, 0);
-		mov16(sys, &sys->cpu.ax.whole, (uint16_t*)(sys->memory + seg_mem(data_seg->whole, moffs16)));
-		ip_increase = 3;
-		break;
-	}
-	case MOV_MOFFS8_AL: // A2 dd dd
-	{
-		uint16_t moffs8 = read_address16(sys, cur_inst + 1, 0);
-		write_address8(sys, seg_mem(data_seg->whole, moffs8), sys->cpu.ax.low, 0);
-		ip_increase = 3;
-		break;
-	}
-	case MOV_MOFFS16_AX: // A2 dd dd
-	{
-		uint16_t moffs16 = read_address16(sys, cur_inst + 1, 0);
-		write_address16(sys, seg_mem(data_seg->whole, moffs16), sys->cpu.ax.whole, 0);
-		ip_increase = 3;
+			else
+			{
+				mov8(sys, instruction->regmem, instruction->reg);
+			}
+		}
 		break;
 	}
 	// B0 ii
@@ -1537,17 +1434,8 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	case MOV_CH_IMM8:
 	case MOV_DH_IMM8:
 	case MOV_BH_IMM8:
-	{
-		int reg_code = opcode - MOV_AL_IMM8;
-
-		reg = reg8_index(&sys->cpu, reg_code);
-
-		uint8_t imm8 = read_address8(sys, cur_inst + 1, 0);
-		mov8(sys, reg, &imm8);
-
-		ip_increase = 2;
+		mov8(sys, instruction->reg, &instruction->data1[0]);
 		break;
-	}
 	case MOV_AX_IMM16: // B8+x ii ii
 	case MOV_CX_IMM16:
 	case MOV_DX_IMM16:
@@ -1556,40 +1444,31 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	case MOV_BP_IMM16:
 	case MOV_SI_IMM16:
 	case MOV_DI_IMM16:
+		mov16(sys, instruction->reg, &instruction->data1);
+		break;
+	case MOV_AL_MOFFS8: // A0 dd dd
 	{
-		int reg_code = opcode - MOV_AX_IMM16;
-
-		reg = reg16_index(&sys->cpu, reg_code);
-
-		uint16_t imm16 = read_address16(sys, cur_inst + 1, 0);
-
-		mov16(sys, reg, &imm16);
-
-		ip_increase = 3;
+		mov8(sys, &sys->cpu.ax.low, &sys->memory[seg_mem(instruction->data_seg->whole, *(uint16_t*)instruction->data1)]);
 		break;
 	}
-	case MOV_RM8_IMM8: // C6 mm dd dd ii
+	case MOV_AX_MOFFS16: // A1 dd dd
 	{
-		uint8_t imm8 = 0;
-
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm8, 0, 0, 0);
-
-		mov8(sys, regmem, &imm8);
+		mov16(sys, &sys->cpu.ax.whole, (&sys->memory[seg_mem(instruction->data_seg->whole, *(uint16_t*)instruction->data1)]));
 		break;
 	}
-	case MOV_RM16_IMM16: // C7 mm dd dd ii ii
+	case MOV_MOFFS8_AL: // A2 dd dd	
 	{
-		uint16_t imm16 = 0;
-
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, &imm16, 1, 1, 0);
-
-		mov16(sys, regmem, &imm16);
-
+		mov8(sys, &sys->memory[seg_mem(instruction->data_seg->whole, *(uint16_t*)instruction->data1)], &sys->cpu.ax.low);
+		break;
+	}
+	case MOV_MOFFS16_AX: // A2 dd dd
+	{
+		mov16(sys, &sys->memory[seg_mem(instruction->data_seg->whole, *(uint16_t*)instruction->data1)], &sys->cpu.ax.whole);
 		break;
 	}
 	case MOVSB:
 	{
-		write_address8(sys, seg_mem(sys->cpu.es.whole, sys->cpu.di.whole), read_address8(sys, seg_mem(data_seg->whole, sys->cpu.si.whole), 0), 0);
+		write_address8(sys, seg_mem(sys->cpu.es.whole, sys->cpu.di.whole), read_address8(sys, seg_mem(instruction->data_seg->whole, sys->cpu.si.whole), 0), 0);
 
 		if (sys->cpu.flag.whole & FLAG_DIRECTION)
 		{
@@ -1602,13 +1481,12 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 			sys->cpu.si.whole++;
 			sys->cpu.di.whole++;
 		}
-
-		ip_increase = 1;
+		
 		break;
 	}
 	case MOVSW:
 	{
-		write_address16(sys, seg_mem(sys->cpu.es.whole, sys->cpu.di.whole), read_address16(sys, seg_mem(data_seg->whole, sys->cpu.si.whole), 0), 0);
+		write_address16(sys, seg_mem(sys->cpu.es.whole, sys->cpu.di.whole), read_address16(sys, seg_mem(instruction->data_seg->whole, sys->cpu.si.whole), 0), 0);
 
 		if (sys->cpu.flag.whole & FLAG_DIRECTION)
 		{
@@ -1621,70 +1499,65 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 			sys->cpu.si.whole += 2;
 			sys->cpu.di.whole += 2;
 		}
-
-		ip_increase = 1;
+	
 		break;
 	}
 	case OR_AL_IMM8:
-	{
-		or8(sys, &sys->cpu.ax.low, read_address8(sys, cur_inst + 1, 0));
-		ip_increase = 2;
+		or8(sys, instruction->reg, instruction->data1[0]);
 		break;
-	}
 	case OR_AX_IMM16:
-	{
-		or16(sys, &sys->cpu.ax.whole, read_address16(sys, cur_inst + 1, 0));
-		ip_increase = 3;
+		or16(sys, instruction->reg, *(uint16_t*)instruction->data1);
 		break;
-	}
 	case OR_RM8_R8:
-	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-		or8(sys, regmem, *(uint8_t*)reg);
-		break;
-	}
 	case OR_RM16_R16:
-	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-		or16(sys, regmem, *(uint16_t*)reg);
-		break;
-	}
 	case OR_R8_RM8:
-	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-		or8(sys, reg, *(uint8_t*)regmem);
-		break;
-	}
 	case OR_R16_RM16:
 	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-		or16(sys, reg, *(uint16_t*)regmem);
+		if (instruction->regmem_to_reg)
+		{
+			if (instruction->width)
+			{
+				or16(sys, instruction->reg, *(uint16_t*)instruction->regmem);
+			}
+
+			else
+			{
+				or8(sys, instruction->reg, *(uint8_t*)instruction->regmem);
+			}
+		}
+
+		else
+		{
+			if (instruction->width)
+			{
+				or16(sys, instruction->regmem, *(uint16_t*)instruction->reg);
+			}
+
+			else
+			{
+				or8(sys, instruction->regmem, *(uint8_t*)instruction->reg);
+			}
+		}
 		break;
 	}
 	case OUT_IMM8_AL:
 	{
-		uint8_t address = read_address8(sys, cur_inst + 1, 0);
-		write_address8(sys, address, sys->cpu.ax.low, 1);
-		ip_increase = 2;
+		write_address8(sys, instruction->data1[0], sys->cpu.ax.low, 1);
 		break;
 	}
 	case OUT_IMM8_AX:
 	{
-		uint8_t address = read_address8(sys, cur_inst + 1, 0);
-		write_address16(sys, address, sys->cpu.ax.whole, 1);
-		ip_increase = 2;
+		write_address16(sys, instruction->data1[0], sys->cpu.ax.whole, 1);
 		break;
 	}
 	case OUT_DX_AL:
 	{
 		write_address8(sys, sys->cpu.dx.whole, sys->cpu.ax.low, 1);
-		ip_increase = 1;
 		break;
 	}
 	case OUT_DX_AX:
 	{
 		write_address16(sys, sys->cpu.dx.whole, sys->cpu.ax.whole, 1);
-		ip_increase = 1;
 		break;
 	}
 	case PUSH_AX: // 50 + i
@@ -1695,61 +1568,22 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	case PUSH_BP:
 	case PUSH_SI:
 	case PUSH_DI:
-	{
-		int reg_code = opcode - PUSH_AX;
-
-		reg = reg16_index(&sys->cpu, reg_code);
-
-		push(sys, *(uint16_t*)reg);
-
-		ip_increase = 1;
-		break;
-	}
-	// 06
 	case PUSH_ES: // es
 	case PUSH_CS: // cs
 	case PUSH_SS: // ss
 	case PUSH_DS: // ds
 	{
-		switch (opcode)
-		{
-		case PUSH_ES:
-		{
-			reg = &sys->cpu.es.whole;
-			break;
-		}
-		case PUSH_CS:
-		{
-			reg = &sys->cpu.cs.whole;
-			break;
-		}
-		case PUSH_SS:
-		{
-			reg = &sys->cpu.ss.whole;
-			break;
-		}
-		case PUSH_DS:
-		{
-			reg = &sys->cpu.ds.whole;
-			break;
-		}
-		}
-
-		push(sys, *(uint16_t*)reg);
-
-		ip_increase = 1;
+		push(sys, *(uint16_t*)instruction->reg);
 		break;
 	}
 	case PUSHF:
 	{
 		push(sys, sys->cpu.flag.whole);
-		ip_increase = 1;
 		break;
 	}
 	case POP_RM16: // 8F mm dd dd
 	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-		pop(sys, regmem);
+		pop(sys, instruction->regmem);
 		break;
 	}
 	case POP_AX: // 58 + i
@@ -1760,131 +1594,93 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	case POP_BP:
 	case POP_SI:
 	case POP_DI:
-	{
-		int reg_code = opcode - POP_AX;
-
-		reg = reg16_index(&sys->cpu, reg_code);
-
-		pop(sys, reg);
-
-		ip_increase = 1;
-		break;
-	}
 	// 07
 	case POP_ES: // es
 	case POP_CS: // cs
 	case POP_SS: // ss
 	case POP_DS: // ds
 	{
-		switch (opcode)
-		{
-		case POP_ES:
-		{
-			reg = &sys->cpu.es.whole;
-			break;
-		}
-		case POP_CS:
-		{
-			reg = &sys->cpu.cs.whole;
-			break;
-		}
-		case POP_SS:
-		{
-			reg = &sys->cpu.ss.whole;
-			break;
-		}
-		case POP_DS:
-		{
-			reg = &sys->cpu.ds.whole;
-			break;
-		}
-		}
-
-		pop(sys, reg);
-
-		ip_increase = 1;
+		pop(sys, instruction->reg);
 		break;
 	}
 	case POPF:
 	{
 		pop(sys, &sys->cpu.flag.whole);
-		ip_increase = 1;
 		break;
 	}
 	case RET_FAR:
 	{
 		pop(sys, &sys->cpu.ip.whole);
 		pop(sys, &sys->cpu.cs.whole);
-		break;
+		return 1;
 	}
 	case RET_FAR_IMM16:
 	{
 		pop(sys, &sys->cpu.ip.whole);
 		pop(sys, &sys->cpu.cs.whole);
-		sys->cpu.sp.whole += read_address16(sys, cur_inst + 1, 0);
-		break;
+		sys->cpu.sp.whole += *(uint16_t*)instruction->data1;
+		return 1;
 	}
 	case RET_NEAR:
 	{
 		pop(sys, &sys->cpu.ip.whole);
-		break;
+		return 1;
 	}
 	case RET_NEAR_IMM16:
 	{
 		pop(sys, &sys->cpu.ip.whole);
-		sys->cpu.sp.whole += read_address16(sys, cur_inst + 1, 0);
-		break;
+		sys->cpu.sp.whole += *(uint16_t*)instruction->data1;
+		return 1;
 	}
 	case SAHF:
 	{
 		sys->cpu.flag.whole &= ~0x00ff;
 		sys->cpu.flag.whole |= sys->cpu.ax.high;
-		ip_increase = 1;
 		break;
 	}
 	case SBB_AL_IMM8:
-	{
-		uint8_t imm = read_address8(sys, cur_inst + 1, 0);
-		sub8(sys, &sys->cpu.ax.low, imm + (uint8_t)(sys->cpu.flag.whole & FLAG_CARRY));
-		ip_increase = 2;
+		sub8(sys, instruction->reg, instruction->data1[0] + (uint8_t)(sys->cpu.flag.whole & FLAG_CARRY));
 		break;
-	}
 	case SBB_AX_IMM16:
-	{
-		uint16_t imm = read_address16(sys, cur_inst + 1, 0);
-		sub16(sys, &sys->cpu.ax.whole, imm + sys->cpu.flag.whole & FLAG_CARRY);
-		ip_increase = 3;
+		sub16(sys, instruction->reg, *(uint16_t*)instruction->data1 + sys->cpu.flag.whole & FLAG_CARRY);
 		break;
-	}
 	case SBB_RM8_R8:
-	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-		sub8(sys, regmem, *(uint8_t*)reg + (uint8_t)(sys->cpu.flag.whole & FLAG_CARRY));
-		break;
-	}
 	case SBB_RM16_R16:
-	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-		sub16(sys, regmem, (*(uint16_t*)reg) + sys->cpu.flag.whole & FLAG_CARRY);
-		break;
-	}
 	case SBB_R8_RM8:
-	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-		sub8(sys, reg, *(uint8_t*)regmem + (uint8_t)(sys->cpu.flag.whole & FLAG_CARRY));
-		break;
-	}
 	case SBB_R16_RM16:
 	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-		sub16(sys, reg, (*(uint16_t*)regmem) + sys->cpu.flag.whole & FLAG_CARRY);
+		if (instruction->regmem_to_reg)
+		{
+			if (instruction->width)
+			{
+				sub16(sys, instruction->reg, *(uint16_t*)instruction->regmem + sys->cpu.flag.whole & FLAG_CARRY);
+			}
+
+			else
+			{
+				sub8(sys, instruction->reg, *(uint8_t*)instruction->regmem + (uint8_t)(sys->cpu.flag.whole & FLAG_CARRY));
+			}
+		}
+
+		else
+		{
+			if (instruction->width)
+			{
+				sub16(sys, instruction->regmem, *(uint16_t*)instruction->reg + sys->cpu.flag.whole & FLAG_CARRY);
+			}
+
+			else
+			{
+				sub8(sys, instruction->regmem, *(uint8_t*)instruction->reg + (uint8_t)(sys->cpu.flag.whole & FLAG_CARRY));
+			}
+		}
 		break;
 	}
 	case SCASB:
 	{
 		cmp8(sys, sys->cpu.ax.low, read_address8(sys, seg_mem(sys->cpu.es.whole, sys->cpu.di.whole), 0));
 
-		if(sys->cpu.flag.whole & FLAG_DIRECTION)
+		if (sys->cpu.flag.whole & FLAG_DIRECTION)
 		{
 			sys->cpu.di.whole--;
 		}
@@ -1895,15 +1691,14 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 		}
 
 		sys->cpu.zero_flag_check = 1;
-
-		ip_increase = 1;
+	
 		break;
 	}
 	case SCASW:
 	{
 		cmp16(sys, sys->cpu.ax.whole, read_address16(sys, seg_mem(sys->cpu.es.whole, sys->cpu.di.whole), 0));
 
-		if(sys->cpu.flag.whole & FLAG_DIRECTION)
+		if (sys->cpu.flag.whole & FLAG_DIRECTION)
 		{
 			sys->cpu.di.whole -= 2;
 		}
@@ -1914,26 +1709,22 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 		}
 
 		sys->cpu.zero_flag_check = 1;
-
-		ip_increase = 1;
+		
 		break;
 	}
 	case STC:
 	{
-		sys->cpu.flag.whole |= FLAG_CARRY;
-		ip_increase = 1;
+		sys->cpu.flag.whole |= FLAG_CARRY;	
 		break;
 	}
 	case STD:
 	{
 		sys->cpu.flag.whole |= FLAG_DIRECTION;
-		ip_increase = 1;
 		break;
 	}
 	case STI:
 	{
 		sys->cpu.sti_enable = 1;
-		ip_increase = 1;
 		break;
 	}
 	case STOSB:
@@ -1949,8 +1740,7 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 		{
 			sys->cpu.di.whole++;
 		}
-
-		ip_increase = 1;
+	
 		break;
 	}
 	case STOSW:
@@ -1966,74 +1756,83 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 		{
 			sys->cpu.di.whole += 2;
 		}
-
-		ip_increase = 1;
+		
 		break;
 	}
-	case SUB_AL_IMM8: // 2C ii
-	{
-		sub8(sys, &sys->cpu.ax.low, read_address8(sys, cur_inst + 1, 0));
-		ip_increase = 2;
+	case SUB_AL_IMM8:
+		sub8(sys, instruction->reg, instruction->data1[0]);
 		break;
-	}
-	case SUB_AX_IMM16: // 2D ii ii
-	{
-		sub16(sys, &sys->cpu.ax.whole, read_address16(sys, cur_inst + 1, 0));
-		ip_increase = 3;
+	case SUB_AX_IMM16:
+		sub16(sys, instruction->reg, *(uint16_t*)instruction->data1);
 		break;
-	}
 	case SUB_RM8_R8:
-	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-		sub8(sys, regmem, *(uint8_t*)reg);
-		break;
-	}
 	case SUB_RM16_R16:
-	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-		sub16(sys, regmem, *(uint16_t*)reg);
-		break;
-	}
 	case SUB_R8_RM8:
-	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-		sub8(sys, reg, *(uint8_t*)regmem);
-		break;
-	}
 	case SUB_R16_RM16:
 	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-		sub16(sys, reg, *(uint16_t*)regmem);
+		if (instruction->regmem_to_reg)
+		{
+			if (instruction->width)
+			{
+				sub16(sys, instruction->reg, *(uint16_t*)instruction->regmem);
+			}
+
+			else
+			{
+				sub8(sys, instruction->reg, *(uint8_t*)instruction->regmem);
+			}
+		}
+
+		else
+		{
+			if (instruction->width)
+			{
+				sub16(sys, instruction->regmem, *(uint16_t*)instruction->reg);
+			}
+
+			else
+			{
+				sub8(sys, instruction->regmem, *(uint8_t*)instruction->reg);
+			}
+		}
 		break;
 	}
 	case TEST_AL_IMM8:
 	{
-		uint8_t temp = sys->cpu.ax.low;
-		uint8_t imm = read_address8(sys, cur_inst + 1, 0);
-		and8(sys, &temp, imm);
-		ip_increase = 2;
+		uint8_t temp = *(uint8_t*)instruction->reg;
+		and8(sys, &temp, instruction->data1[0]);
 		break;
 	}
 	case TEST_AX_IMM16:
 	{
-		uint16_t temp = sys->cpu.ax.whole;
-		uint16_t imm = read_address16(sys, cur_inst + 1, 0);
-		and16(sys, &temp, imm);
-		ip_increase = 3;
+		uint16_t temp = *(uint16_t*)instruction->reg;
+		and16(sys, &temp, *(uint16_t*)instruction->data1);
 		break;
 	}
 	case TEST_RM8_R8:
 	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-		uint8_t temp = *(uint8_t*)regmem;
-		and8(sys, &temp, *(uint8_t*)reg);
+		uint8_t temp = *(uint8_t*)instruction->regmem;
+		and8(sys, &temp, *(uint8_t*)instruction->reg);
 		break;
 	}
 	case TEST_RM16_R16:
 	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-		uint16_t temp = *(uint16_t*)regmem;
-		and16(sys, &temp, *(uint16_t*)reg);
+		uint16_t temp = *(uint16_t*)instruction->regmem;
+		and16(sys, &temp, *(uint16_t*)instruction->reg);
+		break;
+	}	
+	case XCHG_RM8_R8:
+	{
+		uint8_t temp = *(uint8_t*)instruction->regmem;
+		mov8(sys, instruction->regmem, instruction->reg);
+		mov8(sys, instruction->reg, &temp);
+		break;
+	}
+	case XCHG_RM16_R16:
+	{
+		uint16_t temp = *(uint16_t*)instruction->regmem;
+		mov16(sys, instruction->regmem, instruction->reg);
+		mov16(sys, instruction->reg, &temp);
 		break;
 	}
 	case XCHG_AX_AX:
@@ -2045,89 +1844,60 @@ int cpu_process_opcode(Sys8086* sys, enum CPU_Opcode opcode, Register* data_seg,
 	case XCHG_AX_SI:
 	case XCHG_AX_DI:
 	{
-		int reg_code = opcode - XCHG_AX_AX;
+		uint16_t temp = *(uint16_t*)instruction->reg;
 
-		reg = reg16_index(&sys->cpu, reg_code);
-
-		uint16_t temp = *(uint16_t*)reg;
-
-		mov16(sys, reg, &sys->cpu.ax.whole);
+		mov16(sys, instruction->reg, &sys->cpu.ax.whole);
 		mov16(sys, &sys->cpu.ax.whole, &temp);
-
-		ip_increase = 1;
-		break;
-	}
-	case XCHG_RM8_R8:
-	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-
-		uint8_t temp = *(uint8_t*)reg;
-
-		mov8(sys, reg, regmem);
-		mov8(sys, regmem, &temp);
-		break;
-	}
-	case XCHG_RM16_R16:
-	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-
-		uint16_t temp = *(uint16_t*)reg;
-
-		mov16(sys, reg, regmem);
-		mov16(sys, regmem, &temp);
 		break;
 	}
 	case XLAT:
 	{
 		uint16_t temp = (uint16_t)sys->cpu.ax.low;
-		sys->cpu.ax.low = read_address8(sys, seg_mem(data_seg->whole, sys->cpu.bx.whole + temp), 0);
-		ip_increase = 1;
+		sys->cpu.ax.low = read_address8(sys, seg_mem(instruction->data_seg->whole, sys->cpu.bx.whole + temp), 0);
 		break;
 	}
 	case XOR_AL_IMM8:
-	{
-		uint8_t imm = read_address8(sys, cur_inst + 1, 0);
-		xor8(sys, &sys->cpu.ax.low, imm);
-		ip_increase = 2;
+		xor8(sys, instruction->reg, instruction->data1[0]);
 		break;
-	}
 	case XOR_AX_IMM16:
-	{
-		uint16_t imm = read_address16(sys, cur_inst + 1, 0);
-		xor16(sys, &sys->cpu.ax.whole, imm);
-		ip_increase = 3;
+		xor16(sys, instruction->reg, *(uint16_t*)instruction->data1);
 		break;
-	}
 	case XOR_RM8_R8:
-	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-		xor8(sys, regmem, *(uint8_t*)reg);
-		break;
-	}
 	case XOR_RM16_R16:
-	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-		xor16(sys, regmem, *(uint16_t*)reg);
-		break;
-	}
 	case XOR_R8_RM8:
-	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 0, 0, 0);
-		xor8(sys, reg, *(uint8_t*)regmem);
-		break;
-	}
 	case XOR_R16_RM16:
 	{
-		ip_increase = calc_modrm_byte(sys, data_seg, cur_inst, &reg, &regmem, NULL, 1, 0, 0);
-		xor16(sys, reg, *(uint16_t*)regmem);
+		if (instruction->regmem_to_reg)
+		{
+			if (instruction->width)
+			{
+				xor16(sys, instruction->reg, *(uint16_t*)instruction->regmem);
+			}
+
+			else
+			{
+				xor8(sys, instruction->reg, *(uint8_t*)instruction->regmem);
+			}
+		}
+
+		else
+		{
+			if (instruction->width)
+			{
+				xor16(sys, instruction->regmem, *(uint16_t*)instruction->reg);
+			}
+
+			else
+			{
+				xor8(sys, instruction->regmem, *(uint8_t*)instruction->reg);
+			}
+		}
 		break;
 	}
 	default:
-			printf("Unknown Opcode %x\n", opcode);
-
-		ip_increase++;
+		printf("[CPU] Unknown Opcode %x, %x:%x\n", instruction->operation, instruction->segment, instruction->offset);
 		break;
-	}
+	}			
 	
-	return ip_increase;
+	return 0;
 }
