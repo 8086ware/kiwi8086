@@ -119,6 +119,8 @@ void display_render(Sys8086* sys)
                 int write_location_y = cursor_y * 8;
                 int write_location_x = cursor_x * 4;
 
+                if (cursor_x < width && cursor_y < height && cursor_x > 0 && cursor_y > 0)
+                {
                 for (int y = write_location_y + sys->display.crtc.cursor_start_scan_line; y < write_location_y + sys->display.crtc.cursor_end_scan_line; y++)
                 {
                     for (int x = write_location_x; x < write_location_x + 8 / (8 / bpp); x++)
@@ -127,6 +129,7 @@ void display_render(Sys8086* sys)
                     }
                 }
             }
+        }
         }
 
         screen_texture = SDL_CreateTextureFromSurface(sys->display.win_render, sys->display.surface);
