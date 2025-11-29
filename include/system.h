@@ -38,7 +38,7 @@ Sys8086* init_sys(FILE* image, FILE* bios_rom);
 
 int cpu_exec_instruction(Sys8086* sys, Instruction* instruction);
 void cpu_get_instruction(Sys8086* sys, Instruction* instruction);
-void cpu_exec(Sys8086* sys);
+void cpu_cycle(Sys8086* sys);
 void calc_modrm_byte(Sys8086* sys, Instruction* instruction, int modrm_address, _Bool sreg);
 void pic_check_int(Sys8086* sys);
 void pit_cycle(Sys8086* sys);
