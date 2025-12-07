@@ -4,6 +4,10 @@
 #include <stdlib.h>
 #include "keyboard.h"
 
+#define EMU_TICK_NS_PER_CYCLE (1000000000*(float)1/360)
+#define EMU_CPU_NS_PER_CYCLE 200
+#define EMU_PIT_NS_PER_CYCLE 838
+
 int main(int argc, char** argv) {
 	if (argc < 2)
 	{
@@ -26,27 +30,27 @@ int main(int argc, char** argv) {
 	
 	SDL_Event event = { 0 };
 
-	uint64_t last_calc_tick = 0;
+	uint64_t start_frame_tick = 0;
 
 	while (event.type != SDL_EVENT_QUIT) // X button on window
 	{
-		cpu_exec(sys); // fetch/decode/execute/store
-		poll_keyboard(sys, event); // poll for keyboard events
-		pit_cycle(sys); // decrement PIT counter/do other pit stuff (fire irq 0)
-		display_render(sys); // Render CGA display
+		start_frame_tick = SDL_GetTicksNS();
 
-		int now_tick = SDL_GetTicks();
-
-		if(now_tick - last_calc_tick >= 1000)
+		for (int i = 0; i < EMU_TICK_NS_PER_CYCLE / EMU_CPU_NS_PER_CYCLE; i++)
 		{
-			char title[64];
-			sprintf(title, "kiwi8086 - IPS: %d, Halted: %d", sys->cpu.instructions, sys->cpu.halted);
-			SDL_SetWindowTitle(sys->display.win, title);
-			last_calc_tick = now_tick;
-			sys->cpu.instructions = 0;
+			cpu_cycle(sys); // fetch/decode/execute/store
+		}
+
+		for (float i = 0; i < EMU_TICK_NS_PER_CYCLE / EMU_PIT_NS_PER_CYCLE; i++) // constant (pit)
+		{
+			pit_cycle(sys);
 		}
 		
 		SDL_PollEvent(&event); // SDL_PollEvent to poll and not wait
+		poll_keyboard(sys, event); // poll for keyboard events		
+		display_render(sys); // Render CGA display
+
+		while (SDL_GetTicksNS() - start_frame_tick <= EMU_TICK_NS_PER_CYCLE); // sync emulator and real time (frame rate)
 	}
 
 	SDL_DestroySurface(sys->display.surface);
