@@ -3,7 +3,7 @@
 #include "memory.h"
 #include "pic.h"
 
-void cpu_exec(Sys8086* sys)
+void cpu_cycle(Sys8086* sys)
 {
 	sys->cpu.instructions++; // measuring ips
 
