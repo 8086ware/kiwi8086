@@ -9,12 +9,7 @@ void cpu_get_instruction(Sys8086* sys, Instruction* instruction)
 
 	instruction->segment = sys->cpu.cs.whole;
 	instruction->offset = sys->cpu.ip.whole;
-	instruction->length = 0;
-	instruction->data_seg = NULL;
-	instruction->rep = -1; // no repetition
-	instruction->regmem = NULL;
-	instruction->reg = NULL;
-	instruction->modrm = 0;
+	instruction->data_seg = &sys->cpu.ds;
 
 	while (!prefix_instruction_done)
 	{
@@ -111,7 +106,7 @@ void cpu_get_instruction(Sys8086* sys, Instruction* instruction)
 		instruction->reg = segment_reg_index(&sys->cpu, (opcode >> 3) & 0x3);
 	}
 
-	if (opcode_desc[opcode] & 0x40) // is register in opcode last 3 bits?
+	else if (opcode_desc[opcode] & 0x40) // is register in opcode last 3 bits?
 	{
 		if (instruction->width)
 		{
@@ -127,11 +122,6 @@ void cpu_get_instruction(Sys8086* sys, Instruction* instruction)
 	if (opcode_desc[opcode] & 0x2) // reg/regmem direction
 	{
 		instruction->regmem_to_reg = 1;
-	}
-
-	if (instruction->data_seg == NULL)
-	{
-		instruction->data_seg = &sys->cpu.ds;
 	}
 
 	return instruction;
@@ -321,6 +311,104 @@ int cpu_exec_instruction(Sys8086* sys, Instruction* instruction)
 			break;
 		}
 		}
+		break;
+	}
+	case GROUP_OPCODE_C0:
+	{
+		switch (group_opcode_instruction)
+		{
+		case ROL_RM8_IMM8:
+		{
+			rol8(sys, instruction->regmem, instruction->data1[0]);
+			break;
+		}
+		case ROR_RM8_IMM8:
+		{
+			ror8(sys, instruction->regmem, instruction->data1[0]);
+			break;
+		}
+		case RCL_RM8_IMM8:
+		{
+			rcl8(sys, instruction->regmem, instruction->data1[0]);
+			break;
+		}
+		case RCR_RM8_IMM8:
+		{
+			rcr8(sys, instruction->regmem, instruction->data1[0]);
+			break;
+		}
+		case SAL_RM8_IMM8: // D0 mm
+		{
+			sal8(sys, instruction->regmem, instruction->data1[0]);
+			break;
+		}
+		case SAR_RM8_IMM8: // D0 mm
+		{
+			sar8(sys, instruction->regmem, instruction->data1[0]);
+		break;
+	}
+		case SHR_RM8_IMM8: // D0 mm
+		{
+			shr8(sys, instruction->regmem, instruction->data1[0]);
+			break;
+		}
+		default:
+		{
+			printf("Unknown Opcode %x /%d\n", instruction->operation, group_opcode_instruction);
+
+			break;
+		}
+		}
+
+		break;
+	}
+	case GROUP_OPCODE_C1:
+	{
+		switch (group_opcode_instruction)
+		{
+		case ROL_RM16_IMM8:
+		{
+			rol16(sys, instruction->regmem, instruction->data1[0]);
+			break;
+		}
+		case ROR_RM16_IMM8:
+		{
+			ror16(sys, instruction->regmem, instruction->data1[0]);
+			break;
+		}
+		case RCL_RM16_IMM8:
+		{
+			rcl16(sys, instruction->regmem, instruction->data1[0]);
+			break;
+		}
+		case RCR_RM16_IMM8:
+		{
+			rcr16(sys, instruction->regmem, instruction->data1[0]);
+			break;
+		}
+		case SAL_RM16_IMM8: // D0 mm
+		{
+			sal16(sys, instruction->regmem, instruction->data1[0]);
+			break;
+		}
+		case SAR_RM16_IMM8: // D0 mm
+		{
+			sar16(sys, instruction->regmem, instruction->data1[0]);
+			break;
+		}
+		case SHR_RM16_IMM8: // D0 mm
+		{
+			shr16(sys, instruction->regmem, instruction->data1[0]);
+			break;
+		}
+		default:
+		{
+			printf("Unknown Opcode %x /%d\n", instruction->operation, group_opcode_instruction);
+
+			break;
+		}
+		}
+
 		break;
 	}
 	case GROUP_OPCODE_D0:
@@ -1081,6 +1169,42 @@ int cpu_exec_instruction(Sys8086* sys, Instruction* instruction)
 		sys->cpu.ax.whole = read_address16(sys, sys->cpu.dx.whole, 1);
 		break;
 	}
+	case INSB:
+	{
+		sys->cpu.ax.low = read_address8(sys, sys->cpu.dx.whole, 1);
+
+		write_address8(sys, seg_mem(sys->cpu.es.whole, sys->cpu.di.whole), sys->cpu.ax.low, 0);
+
+		if (sys->cpu.flag.whole & FLAG_DIRECTION)
+		{
+			sys->cpu.di.whole--;
+		}
+
+		else
+		{
+			sys->cpu.di.whole++;
+		}
+
+		break;
+	}
+	case INSW:
+	{
+		sys->cpu.ax.whole = read_address16(sys, sys->cpu.dx.whole, 1);
+
+		write_address16(sys, seg_mem(sys->cpu.es.whole, sys->cpu.di.whole), sys->cpu.ax.whole, 0);
+
+		if (sys->cpu.flag.whole & FLAG_DIRECTION)
+		{
+			sys->cpu.di.whole-=2;
+		}
+
+		else
+		{
+			sys->cpu.di.whole+=2;
+		}
+
+		break;
+	}
 	// 40 + i
 	case INC_AX:
 	case INC_CX:
@@ -1560,6 +1684,48 @@ int cpu_exec_instruction(Sys8086* sys, Instruction* instruction)
 		write_address16(sys, sys->cpu.dx.whole, sys->cpu.ax.whole, 1);
 		break;
 	}
+	case OUTSB:
+	{
+		sys->cpu.ax.low = read_address8(sys, seg_mem(instruction->data_seg->whole, sys->cpu.si.whole), 0);
+
+		if (sys->cpu.flag.whole & FLAG_DIRECTION)
+		{
+			sys->cpu.si.whole--;
+		}
+
+		else
+		{
+			sys->cpu.si.whole++;
+		}
+
+		write_address8(sys, sys->cpu.dx.whole, sys->cpu.ax.low, 1);
+		break;
+	}
+	case OUTSW:
+	{
+		sys->cpu.ax.whole = read_address16(sys, seg_mem(instruction->data_seg->whole, sys->cpu.si.whole), 0);
+
+		if (sys->cpu.flag.whole & FLAG_DIRECTION)
+		{
+			sys->cpu.si.whole-=2;
+		}
+
+		else
+		{
+			sys->cpu.si.whole+=2;
+		}
+
+		write_address16(sys, sys->cpu.dx.whole, sys->cpu.ax.whole, 1);
+		break;
+	}
+	case PUSHA:
+	{
+		for (int i = 0; i < 8; i++)
+		{
+			push(sys, *reg16_index(&sys->cpu, i));
+		}
+		break;
+	}
 	case PUSH_AX: // 50 + i
 	case PUSH_CX:
 	case PUSH_DX:
@@ -1579,6 +1745,33 @@ int cpu_exec_instruction(Sys8086* sys, Instruction* instruction)
 	case PUSHF:
 	{
 		push(sys, sys->cpu.flag.whole);
+		break;
+	}
+	case PUSH_IMM8:
+	{
+		push(sys, instruction->data1[0]);
+		break;
+	}
+	case PUSH_IMM16:
+	{
+		push(sys, *(uint16_t*)instruction->data1);
+		break;
+	}
+	case POPA:
+	{
+		for (int i = 7; i >= 0; i--)
+		{
+			if (i == 4) // popping sp (into nothing)
+			{
+				int garbo; 
+				pop(sys, &garbo);
+			}
+
+			else
+			{
+				pop(sys, reg16_index(&sys->cpu, i));
+			}
+		}
 		break;
 	}
 	case POP_RM16: // 8F mm dd dd

@@ -57,6 +57,29 @@ enum CPU_Group_Opcode_83
 	CMP_RM16_IMM8 = 0x7, // Opcode group 83
 };
 
+
+enum CPU_Group_Opcode_C0
+{
+	ROL_RM8_IMM8 = 0x0,
+	ROR_RM8_IMM8 = 0x1,
+	RCL_RM8_IMM8 = 0x2,
+	RCR_RM8_IMM8 = 0x3,
+	SAL_RM8_IMM8 = 0x4,
+	SHR_RM8_IMM8 = 0x5,
+	SAR_RM8_IMM8 = 0x7,
+};
+
+enum CPU_Group_Opcode_C1
+{
+	ROL_RM16_IMM8 = 0x0,
+	ROR_RM16_IMM8 = 0x1,
+	RCL_RM16_IMM8 = 0x2,
+	RCR_RM16_IMM8 = 0x3,
+	SAL_RM16_IMM8 = 0x4,
+	SHR_RM16_IMM8 = 0x5,
+	SAR_RM16_IMM8 = 0x7,
+};
+
 enum CPU_Group_Opcode_D0
 {
 	ROL_RM8_1 = 0x0,
@@ -155,6 +178,8 @@ enum CPU_Opcode
 	GROUP_OPCODE_80 = 0x80,
 	GROUP_OPCODE_81 = 0x81,
 	GROUP_OPCODE_83 = 0x83,
+	GROUP_OPCODE_C0 = 0xC0,
+	GROUP_OPCODE_C1 = 0xC1,
 	GROUP_OPCODE_D0 = 0xD0,
 	GROUP_OPCODE_D1 = 0xD1,
 	GROUP_OPCODE_D2 = 0xD2,
@@ -224,6 +249,9 @@ enum CPU_Opcode
 
 	HLT = 0xF4,
 
+	IMUL_R16_RM16_IMM8 = 0x6B,
+	IMUL_R16_RM16_IMM16 = 0x69,
+
 	IN_AL_IMM8 = 0xE4,
 	IN_AX_IMM8 = 0xE5,
 	IN_AL_DX = 0xEC,
@@ -238,6 +266,9 @@ enum CPU_Opcode
 	INC_BP = INC_AX + 5,
 	INC_SI = INC_AX + 6,
 	INC_DI = INC_AX + 7,
+
+	INSB = 0x6C,
+	INSW = 0x6D,
 
 	INT_IMM8 = 0xCD,
 
@@ -323,6 +354,11 @@ enum CPU_Opcode
 	OUT_DX_AL = 0xEE,
 	OUT_DX_AX = 0xEF,
 
+	OUTSB = 0x6E,
+	OUTSW = 0x6F,
+
+	PUSHA = 0x60,
+
 	PUSH_AX = 0x50,
 	PUSH_CX = PUSH_AX + 1,
 	PUSH_DX = PUSH_AX + 2,
@@ -336,6 +372,11 @@ enum CPU_Opcode
 	PUSH_SS = PUSH_ES + 0x10,
 	PUSH_DS = PUSH_ES + 0x18,
 	PUSHF = 0x9C,
+
+	PUSH_IMM8 = 0x6A,
+	PUSH_IMM16 = 0x68,
+
+	POPA = 0x61,
 
 	POP_AX = 0x58,
 	POP_CX = POP_AX + 1,
