@@ -9,7 +9,7 @@ void cpu_get_instruction(Sys8086* sys, Instruction* instruction)
 
 	instruction->segment = sys->cpu.cs.whole;
 	instruction->offset = sys->cpu.ip.whole;
-	instruction->data_seg = &sys->cpu.ds;
+	instruction->data_seg = NULL;
 
 	while (!prefix_instruction_done)
 	{
@@ -122,6 +122,12 @@ void cpu_get_instruction(Sys8086* sys, Instruction* instruction)
 	if (opcode_desc[opcode] & 0x2) // reg/regmem direction
 	{
 		instruction->regmem_to_reg = 1;
+	}
+
+	if (instruction->data_seg == NULL)
+	{
+		instruction->data_seg = &sys->cpu.ds.whole;
+
 	}
 
 	return instruction;
